@@ -12,7 +12,7 @@
 //   appId: "1:1234567890:web:abc123"
 // };
 
-const firebaseConfig = {
+export default {
   apiKey: "AIzaSyAEj9VlOnpsajy1b8xlETTGtnlRXpjr9fU",
   authDomain: "sesli-kitap-rafi.firebaseapp.com",
   projectId: "sesli-kitap-rafi",
