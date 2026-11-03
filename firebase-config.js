@@ -12,4 +12,12 @@
 //   appId: "1:1234567890:web:abc123"
 // };
 
-export default null;
+const firebaseConfig = {
+  apiKey: "AIzaSyAEj9VlOnpsajy1b8xlETTGtnlRXpjr9fU",
+  authDomain: "sesli-kitap-rafi.firebaseapp.com",
+  projectId: "sesli-kitap-rafi",
+  storageBucket: "sesli-kitap-rafi.firebasestorage.app",
+  messagingSenderId: "1016771561574",
+  appId: "1:1016771561574:web:eee65400655f0a105505a7",
+  measurementId: "G-V3EY36G96J"
+};
