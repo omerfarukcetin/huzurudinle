@@ -1,0 +1,9 @@
+rules_version = '2';
+// Her kullanıcı yalnızca kendi dinleme kaydını (users/{uid}) okuyup yazabilir; başka hiçbir şeye erişim yok.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
