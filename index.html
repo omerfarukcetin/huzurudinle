@@ -38,13 +38,27 @@
   --danger: #c2412d;
   --tile-mix: 26%;
   --shadow: 0 1px 2px rgba(20, 30, 26, .05), 0 10px 30px rgba(20, 30, 26, .10);
-  /* Çalar (her iki temada da koyu) */
-  --pl-base: #1d201f;
-  --pl-fg: #f5f5f2;
-  --pl-muted: rgba(245, 245, 242, .62);
-  --pl-track: rgba(245, 245, 242, .22);
-  --pl-accent: #6fd3c1;
-  --pl-panel: #262a28;
+  /* Çalar ve paneller: temaya uyar (açık temada açık, kapak rengiyle hafif tonlu) */
+  --pl-base: #f3f5f4;
+  --pl-fg: #141917;
+  --pl-muted: rgba(20, 25, 23, .62);
+  --pl-track: rgba(20, 25, 23, .14);
+  --pl-accent: #0f6f5e;
+  --pl-panel: #ffffff;
+  --pl-hover: rgba(20, 25, 23, .06);
+  --pl-chip: rgba(20, 25, 23, .06);
+  --pl-chip-hover: rgba(20, 25, 23, .11);
+  --pl-chip-on-bg: #141917;
+  --pl-chip-on-fg: #ffffff;
+  --pl-play-bg: #141917;
+  --pl-play-fg: #ffffff;
+  --pl-thumb: #141917;
+  --pl-line: rgba(20, 25, 23, .1);
+  --pl-err: #b3361f;
+  --pl-mini-mix: 18%;   /* mini çalarda kapak rengi oranı */
+  --pl-tint: 26%;       /* tam ekran çalarda kapak rengi oranı */
+  --pl-tint-top: 40%;
+  --pl-end: #fbfbfa;
 
   /* Tek yazı tipi, tek ölçek */
   --font: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
@@ -68,6 +82,10 @@
     --bg: #0e1211; --surface: #161b19; --surface-2: #1f2623; --fg: #ecf0ee; --muted: #98a49f; --line: #27302c;
     --accent: #5fd0a8; --accent-fg: #06221a; --accent-soft: #17312a; --danger: #f08a74; --tile-mix: 34%;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.4);
+    --pl-base: #1d201f; --pl-fg: #f5f5f2; --pl-muted: rgba(245,245,242,.62); --pl-track: rgba(245,245,242,.22); --pl-accent: #6fd3c1; --pl-panel: #262a28;
+    --pl-hover: rgba(255,255,255,.08); --pl-chip: rgba(255,255,255,.09); --pl-chip-hover: rgba(255,255,255,.16); --pl-chip-on-bg: #ffffff; --pl-chip-on-fg: #161817;
+    --pl-play-bg: #ffffff; --pl-play-fg: #161817; --pl-thumb: #ffffff; --pl-line: rgba(255,255,255,.1); --pl-err: #ffb4a3;
+    --pl-mini-mix: 30%; --pl-tint: 34%; --pl-tint-top: 52%; --pl-end: #121514;
     color-scheme: dark;
   }
 }
@@ -75,6 +93,10 @@
   --bg: #0e1211; --surface: #161b19; --surface-2: #1f2623; --fg: #ecf0ee; --muted: #98a49f; --line: #27302c;
   --accent: #5fd0a8; --accent-fg: #06221a; --accent-soft: #17312a; --danger: #f08a74; --tile-mix: 34%;
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.4);
+  --pl-base: #1d201f; --pl-fg: #f5f5f2; --pl-muted: rgba(245,245,242,.62); --pl-track: rgba(245,245,242,.22); --pl-accent: #6fd3c1; --pl-panel: #262a28;
+  --pl-hover: rgba(255,255,255,.08); --pl-chip: rgba(255,255,255,.09); --pl-chip-hover: rgba(255,255,255,.16); --pl-chip-on-bg: #ffffff; --pl-chip-on-fg: #161817;
+  --pl-play-bg: #ffffff; --pl-play-fg: #161817; --pl-thumb: #ffffff; --pl-line: rgba(255,255,255,.1); --pl-err: #ffb4a3;
+  --pl-mini-mix: 30%; --pl-tint: 34%; --pl-tint-top: 52%; --pl-end: #121514;
   color-scheme: dark;
 }
 @media (min-width: 768px) { :root { --gutter-l: max(28px, env(safe-area-inset-left, 0px)); --gutter-r: max(28px, env(safe-area-inset-right, 0px)); } }
@@ -251,7 +273,8 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -.015em; line-heig
   left: max(10px, env(safe-area-inset-left, 0px)); right: max(10px, env(safe-area-inset-right, 0px));
   bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   max-width: 680px; margin: 0 auto; height: var(--mini-h);
-  background: color-mix(in srgb, var(--tint, #888) 30%, var(--pl-base)); color: var(--pl-fg);
+  background: color-mix(in srgb, var(--tint, #888) var(--pl-mini-mix), var(--pl-base)); color: var(--pl-fg);
+  border: 1px solid var(--pl-line);
   border-radius: 16px; box-shadow: var(--shadow);
   display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 0 8px 0 10px; overflow: hidden;
 }
@@ -269,20 +292,20 @@ h1, h2, h3, h4 { margin: 0; font-weight: 700; letter-spacing: -.015em; line-heig
 .bar .line i { display: block; height: 100%; width: 0; background: var(--pl-accent); border-radius: 2px; }
 
 .ib { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex: none; color: var(--pl-fg); }
-.ib:hover { background: rgba(255,255,255,.08); }
+.ib:hover { background: var(--pl-hover); }
 .ib svg { width: 26px; height: 26px; fill: currentColor; }
 .ib.small svg { width: 22px; height: 22px; }
 .ib:disabled { opacity: .3; cursor: default; background: none; }
-.ib.round-play { background: #fff; color: #161817; width: 40px; height: 40px; }
-.ib.round-play:hover { background: #fff; transform: scale(1.04); }
+.ib.round-play { background: var(--pl-play-bg); color: var(--pl-play-fg); width: 40px; height: 40px; }
+.ib.round-play:hover { background: var(--pl-play-bg); transform: scale(1.04); }
 .ib.round-play svg { width: 22px; height: 22px; }
 
 /* ---------- Tam ekran çalar ---------- */
 .sheet {
-  --pl-bg: color-mix(in srgb, var(--tint, #888) 34%, var(--pl-base));
+  --pl-bg: color-mix(in srgb, var(--tint, #888) var(--pl-tint), var(--pl-base));
   position: fixed; inset: 0; z-index: 40; overflow-y: auto; overscroll-behavior: contain;
   color: var(--pl-fg);
-  background: radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--tint, #888) 52%, var(--pl-base)) 0%, var(--pl-bg) 55%, color-mix(in srgb, var(--pl-bg) 80%, #000) 100%);
+  background: radial-gradient(120% 70% at 50% 0%, color-mix(in srgb, var(--tint, #888) var(--pl-tint-top), var(--pl-base)) 0%, var(--pl-bg) 55%, var(--pl-end) 100%);
   padding: env(safe-area-inset-top, 0px) var(--gutter-r) env(safe-area-inset-bottom, 0px) var(--gutter-l);
   transform: translateY(100%); visibility: hidden; transition: transform .32s cubic-bezier(.2,.8,.2,1), visibility 0s .32s;
 }
@@ -311,20 +334,20 @@ input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; hei
 input[type=range]::-webkit-slider-runnable-track { height: 5px; border-radius: 5px; background: linear-gradient(90deg, var(--pl-accent) var(--p), var(--pl-track) var(--p)); }
 input[type=range]::-moz-range-track { height: 5px; border-radius: 5px; background: var(--pl-track); }
 input[type=range]::-moz-range-progress { height: 5px; border-radius: 5px; background: var(--pl-accent); }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff; margin-top: -7.5px; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
-input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: #fff; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--pl-thumb); margin-top: -7.5px; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: var(--pl-thumb); }
 
 .jumps { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
-.jump { padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.09); font-size: var(--fs-xs); font-weight: 700; color: var(--pl-fg); font-variant-numeric: tabular-nums; }
-.jump:hover { background: rgba(255,255,255,.16); }
+.jump { padding: 6px 12px; border-radius: 999px; background: var(--pl-chip); font-size: var(--fs-xs); font-weight: 700; color: var(--pl-fg); font-variant-numeric: tabular-nums; }
+.jump:hover { background: var(--pl-chip-hover); }
 .jump:active { transform: scale(.95); }
 
 .transport { display: flex; align-items: center; justify-content: space-between; padding-inline: 4px; }
-.transport .play { width: 80px; height: 80px; border-radius: 50%; background: #fff; color: #161817; display: grid; place-items: center; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.transport .play { width: 80px; height: 80px; border-radius: 50%; background: var(--pl-play-bg); color: var(--pl-play-fg); display: grid; place-items: center; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
 .transport .play svg { width: 36px; height: 36px; fill: currentColor; }
 .transport .play:active { transform: scale(.96); }
 .sk { position: relative; width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; color: var(--pl-fg); }
-.sk:hover { background: rgba(255,255,255,.08); }
+.sk:hover { background: var(--pl-hover); }
 .sk:active { transform: scale(.94); }
 .sk svg { width: 54px; height: 54px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .sk b { position: absolute; inset: 0; display: grid; place-items: center; font-size: var(--fs-base); font-weight: 600; padding-top: 4px; font-variant-numeric: tabular-nums; }
@@ -332,18 +355,18 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 0; bord
 .sk.mini svg { width: 32px; height: 32px; stroke-width: 1.8; }
 .sk.mini b { font-size: .625rem; font-weight: 700; padding-top: 3px; }
 .tn { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--pl-muted); }
-.tn:hover { color: var(--pl-fg); background: rgba(255,255,255,.08); }
+.tn:hover { color: var(--pl-fg); background: var(--pl-hover); }
 .tn svg { width: 24px; height: 24px; fill: currentColor; }
 .tn:disabled { opacity: .3; cursor: default; background: none; }
 
 .tools { margin-top: auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding-block: 10px 8px; }
 .tool { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 2px; border-radius: 12px; color: var(--pl-fg); }
-.tool:hover { background: rgba(255,255,255,.07); }
+.tool:hover { background: var(--pl-hover); }
 .tool svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .tool span { font-size: var(--fs-xs); font-weight: 600; color: var(--pl-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tool.on, .tool.on span { color: var(--pl-accent); }
 
-.err { color: #ffb4a3; font-size: var(--fs-sm); margin-top: 6px !important; }
+.err { color: var(--pl-err); font-size: var(--fs-sm); margin-top: 6px !important; }
 
 /* ---------- Paneller (hız, uyku, bölümler, hesap) ---------- */
 .pop { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
@@ -353,7 +376,8 @@ input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 0; bord
   border-radius: 22px 22px 0 0; padding: 8px var(--gutter-r) calc(20px + env(safe-area-inset-bottom, 0px)) var(--gutter-l);
   animation: up .26s cubic-bezier(.2,.8,.2,1);
 }
-.pop.dark .pop-card { background: var(--pl-panel); color: var(--pl-fg); --muted-c: var(--pl-muted); --chip: rgba(255,255,255,.09); --chip-on-bg: #fff; --chip-on-fg: #161817; --ln: rgba(255,255,255,.09); --acc: var(--pl-accent); }
+/* "dark" paneller (hız, uyku, bölümler, paylaş, not) artık çaların renklerini izler: açık temada açık */
+.pop.dark .pop-card { background: var(--pl-panel); color: var(--pl-fg); --muted-c: var(--pl-muted); --chip: var(--pl-chip); --chip-on-bg: var(--pl-chip-on-bg); --chip-on-fg: var(--pl-chip-on-fg); --ln: var(--pl-line); --acc: var(--pl-accent); box-shadow: 0 -8px 40px rgba(0,0,0,.18); }
 .pop.light .pop-card { background: var(--surface); color: var(--fg); --muted-c: var(--muted); --chip: var(--surface-2); --chip-on-bg: var(--accent); --chip-on-fg: var(--accent-fg); --ln: var(--line); --acc: var(--accent); }
 @media (min-width: 600px) { .pop { align-items: center; padding: 24px; } .pop-card { border-radius: 20px; padding: 20px 24px 24px; } .grab { display: none; } }
 .grab { width: 40px; height: 4px; border-radius: 4px; background: currentColor; opacity: .25; margin: 4px auto 10px; }
@@ -512,6 +536,25 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   .stats-cols .card { margin-top: 14px; }
   .plot { height: 180px; }
 }
+/* ---------- Verilerim ---------- */
+.card h3 .count { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); margin-left: 6px; }
+.drow { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.drow:last-child { border-bottom: 0; }
+.drow.end { display: flex; justify-content: flex-end; padding-top: 12px; }
+.drow img { height: 42px; width: auto; margin: 0 auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,.2)); }
+.drow strong { display: block; font-size: var(--fs-sm); font-weight: 600; overflow-wrap: anywhere; }
+.drow small { display: block; font-size: var(--fs-xs); color: var(--muted); }
+.dbtn { padding: 7px 14px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--line)); color: var(--danger); font-size: var(--fs-sm); font-weight: 700; white-space: nowrap; }
+.dbtn:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
+.dbtn.icon { width: 34px; height: 34px; padding: 0; display: grid; place-items: center; }
+.dbtn.icon svg { width: 16px; height: 16px; fill: currentColor; }
+.dbtn.solid { background: var(--danger); border-color: var(--danger); color: #fff; padding: 11px 18px; }
+.dbtn.solid:hover { filter: brightness(1.05); background: var(--danger); }
+.dbtn:disabled { opacity: .45; cursor: default; }
+.danger-zone { border-color: color-mix(in srgb, var(--danger) 30%, var(--line)); }
+.btn2.danger { background: var(--danger); color: #fff; }
+.linkbtn { color: var(--accent); font-weight: 700; font-size: var(--fs-sm); }
+
 @media (min-width: 1024px) { .stats-wrap h2.pt { font-size: var(--fs-3xl); padding-top: 28px; } .gsearch { max-width: 560px; } }
 
 @keyframes fade { from { opacity: 0; } }
@@ -531,7 +574,8 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     left: 0; right: 0; bottom: 0; max-width: none; margin: 0; border-radius: 0; height: calc(var(--bar-h) + env(safe-area-inset-bottom, 0px));
     padding: 0 max(20px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px));
     grid-template-columns: minmax(200px, 1fr) minmax(320px, 1.6fr) minmax(200px, 1fr); gap: 24px;
-    box-shadow: 0 -1px 0 rgba(255,255,255,.06), 0 -8px 30px rgba(0,0,0,.12);
+    border: 0; border-top: 1px solid var(--pl-line);
+    box-shadow: 0 -8px 30px rgba(0,0,0,.08);
   }
   .bar-now { grid-template-columns: 52px minmax(0, 1fr); gap: 12px; }
   .bar-now .thumb { width: 52px; height: 62px; }
@@ -616,7 +660,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   .now p { font-size: var(--fs-base); }
   .times { font-size: var(--fs-sm); }
   .jumps { justify-content: flex-start; }
-  .tools { margin-top: 8px; border-top: 1px solid rgba(255,255,255,.1); padding-top: 16px; }
+  .tools { margin-top: 8px; border-top: 1px solid var(--pl-line); padding-top: 16px; }
 }
 @media (min-width: 1024px) and (max-width: 1199px) { .row { grid-template-columns: 40px minmax(0, 1fr) 28px; } .row .dur { display: none; } .row .nm small.st-mobile { display: block; } }
 
@@ -639,6 +683,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   <nav class="nav">
     <a href="#" data-nav="home"><svg viewBox="0 0 24 24"><path d="M12 3 3 10.5V21h6v-6h6v6h6V10.5z"/></svg>Ana sayfa</a>
     <a href="#istatistik" data-nav="stats"><svg viewBox="0 0 24 24"><path d="M4 20h16v-2H4zm1-4h3V9H5zm5.5 0h3V4h-3zm5.5 0h3v-5h-3z"/></svg>İstatistikler</a>
+    <a href="#verilerim" data-nav="data"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5zm0 2.2 6 2.2V11c0 4-2.6 7.7-6 8.9-3.4-1.2-6-4.9-6-8.9V6.4zM11 7v6h2V7zm0 8v2h2v-2z"/></svg>Verilerim</a>
     <button type="button" data-act="install" data-install hidden><svg viewBox="0 0 24 24"><path d="M11 3h2v9.2l3.3-3.3 1.4 1.4L12 16l-5.7-5.7 1.4-1.4 3.3 3.3zM5 19h14v2H5z"/></svg>Uygulamayı yükle</button>
   </nav>
   <div class="side-recent" id="sideRecent"></div>
@@ -685,6 +730,15 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
       <div id="shelves"></div>
       <p class="foot" id="summary"></p>
     </div>
+  </section>
+
+  <!-- Verilerim -->
+  <section id="data" hidden>
+    <div class="topbar"><div class="wrap">
+      <button class="iconbtn" data-back type="button" aria-label="Geri"><svg viewBox="0 0 24 24"><path d="M15.4 6.4 14 5l-7 7 7 7 1.4-1.4L9.8 12z"/></svg></button>
+      <h1>Verilerim</h1>
+    </div></div>
+    <div class="wrap stats-wrap" id="dataBody"></div>
   </section>
 
   <!-- İstatistikler -->
@@ -866,13 +920,14 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   // progress[trackKey] = {pos, dur, done, at}; bookmarks[id] = {k, pos, note?, at, deleted?}
   // daily[cihaz][YYYY-AA-GG] = dinlenen saniye (her cihaz kendi sayacını tutar, toplam = hepsinin toplamı)
   // last / lastByBook / recent / speed / goal: updatedAt'ı yeni olan taraf kazanır
-  const DEF = () => ({ v: 2, progress: {}, bookmarks: {}, daily: {}, last: null, lastByBook: {}, recent: [], speed: 1, goal: 15, updatedAt: 0 });
+  // epoch: "şu andan önceki kayıtları sil" zamanları (silme işlemi senkronla diğer cihazlara da geçsin diye)
+  const DEF = () => ({ v: 2, progress: {}, bookmarks: {}, daily: {}, last: null, lastByBook: {}, recent: [], speed: 1, goal: 15, updatedAt: 0, epoch: { progress: 0, bookmarks: 0, daily: 0 } });
   let state = loadState();
   const DEVICE = store.get('device', null) || (() => { const id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); store.set('device', id); return id; })();
 
   function loadState() {
     const s = store.get('state', null);
-    if (s && s.v === 2) return { ...DEF(), ...s };
+    if (s && s.v === 2) { const d = DEF(); return { ...d, ...s, epoch: { ...d.epoch, ...(s.epoch || {}) } }; }
     // Eski sürümden (url ve sıra numarasıyla tutulan) kayıtları taşı
     const m = DEF();
     for (const [url, p] of Object.entries(store.get('progress', {}))) m.progress[trackKey(url)] = { ...p, at: Date.now() };
@@ -889,6 +944,14 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     store.set('state', state);
     window.skrSync?.push();
   }
+  // Silme zamanından eski kayıtları at (başka cihazdan gelen silme işlemi dahil)
+  function pruneOld() {
+    const e = state.epoch;
+    for (const [k, v] of Object.entries(state.progress)) if ((v.at || 0) < e.progress) delete state.progress[k];
+    for (const [k, v] of Object.entries(state.bookmarks)) if ((v.at || 0) < e.bookmarks) delete state.bookmarks[k];
+  }
+  // Silme işlemleri beklemeden hesaba yazılır
+  const saveNow = () => { persist(true); window.skrSync?.flush(); };
 
   let cur = null; // {b, t}
   let viewBook = null;
@@ -1114,12 +1177,113 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
           return `<button class="bprog" type="button" data-book="${b.id}"><img alt="" src="${esc(b.cover)}"><span style="min-width:0"><strong>${esc(b.title)}</strong><div class="pb"><i style="width:${pct.toFixed(1)}%"></i></div><small>${doneCount(b)} / ${b.tracks.length} bölüm dinlendi${left ? ` · ${human(left)} kaldı` : ''}</small></span><span class="pc">%${pct < 1 ? pct.toFixed(1).replace('.', ',') : Math.floor(pct)}</span></button>`;
         }).join('') : '<p class="empty-card">Henüz bir kitaba başlamadın. Dinlediğin kitaplar ve ilerlemen burada görünür.</p>'}
       </div>
-      <p class="foot">${user ? 'Süreler giriş yaptığın tüm cihazlardan toplanır.' : 'Süreler bu cihazda tutuluyor. Giriş yaparsan tüm cihazların birlikte sayılır.'}</p>`;
+      <p class="foot">${user ? 'Süreler giriş yaptığın tüm cihazlardan toplanır.' : 'Süreler bu cihazda tutuluyor. Giriş yaparsan tüm cihazların birlikte sayılır.'}
+        <br><a class="linkbtn" href="#verilerim">Verilerimi yönet ve sil</a></p>`;
 
     $('statsBody').querySelectorAll('[data-book]').forEach(x => x.onclick = () => go(`#kitap-${x.dataset.book}`));
     $('statsBody').querySelectorAll('[data-goal]').forEach(x => x.onclick = () => { state.goal = +x.dataset.goal; persist(true); reminderSync(); renderStats(); });
     $('remOn').onchange = e => setReminder(e.target.checked);
     $('remHour').onchange = e => { saveReminder({ ...reminder(), hour: +e.target.value }); reminderSync(); };
+  }
+
+  // ---------- Verilerim: kullanıcının kendi kayıtlarını görüp silmesi ----------
+  function confirmPop(title, text, okLabel, onOk) {
+    openPop(`<div class="pop-h"><h4>${esc(title)}</h4><button class="x" type="button" data-close aria-label="Kapat">${ICON_X}</button></div>
+      <p class="note" style="margin:0">${text}</p>
+      <div class="btn-grid"><button class="btn2" type="button" data-close>Vazgeç</button><button class="btn2 danger" type="button" id="okBtn">${esc(okLabel)}</button></div>`, {
+      dark: false,
+      onMount(card) { card.querySelector('#okBtn').onclick = async e => { e.target.disabled = true; try { await onOk(); } finally { closePop(); } }; }
+    });
+  }
+  function stopIfIn(keys) {
+    // Silinen kayıt şu an çalıyorsa ya da mini çalarda bekliyorsa onu da kaldır
+    const k = cur ? books[cur.b].tracks[cur.t].key : state.last;
+    if (!keys || (k && keys.has(k))) {
+      audio.pause(); audio.removeAttribute('src'); cur = null; shared = null;
+      $('bar').hidden = true; document.body.classList.remove('has-mini');
+    }
+  }
+  function resetBook(bi) {
+    const b = books[bi], now = Date.now(), keys = new Set(b.tracks.map(t => t.key));
+    // Silindi işareti: diğer cihazlarda daha eski konum olsa bile bu kazanır
+    b.tracks.forEach(t => { if (state.progress[t.key]) state.progress[t.key] = { pos: 0, dur: state.progress[t.key].dur || t.dur || 0, done: false, at: now }; });
+    delete state.lastByBook[b.key];
+    state.recent = state.recent.filter(k => k !== b.key);
+    if (state.last && keys.has(state.last)) { stopIfIn(keys); state.last = null; }
+    saveNow();
+    toast(`${b.title}: ilerleme silindi`);
+  }
+  function deleteBookmark(id) {
+    state.bookmarks[id] = { ...state.bookmarks[id], deleted: true, note: undefined, at: Date.now() };
+    saveNow();
+  }
+  function deleteAllBookmarks() { state.epoch.bookmarks = Date.now(); state.bookmarks = {}; saveNow(); toast('Tüm yer imleri silindi'); }
+  function clearHistory() { state.epoch.daily = Date.now(); state.daily = {}; saveNow(); toast('Dinleme geçmişi silindi'); }
+  function clearAll() {
+    const now = Date.now();
+    stopIfIn(null);
+    state.epoch = { progress: now, bookmarks: now, daily: now };
+    Object.assign(state, { progress: {}, bookmarks: {}, daily: {}, last: null, lastByBook: {}, recent: [] });
+    saveNow();
+    toast('Tüm dinleme verilerin silindi');
+  }
+
+  function renderData() {
+    const started = books.filter(b => b.tracks.some(t => { const p = prog(t); return p && (p.done || p.pos > 1); }) || lastInBook(b.id) != null);
+    const marks = Object.entries(state.bookmarks).filter(([, m]) => !m.deleted && byKey.get(m.k))
+      .map(([id, m]) => ({ id, ...m, ...byKey.get(m.k) })).sort((x, y) => y.at - x.at);
+    const days = new Set(Object.values(state.daily || {}).flatMap(Object.keys));
+    const total = [...days].reduce((n, k) => n + daySum(k), 0);
+    const nothing = !started.length && !marks.length && !days.size;
+
+    $('dataBody').innerHTML = `
+      <h2 class="pt">Verilerim</h2>
+      <p class="note" style="margin:4px 0 0;max-width:640px">Burada ${user ? 'hesabında ve bu cihazda' : 'bu cihazda'} saklanan dinleme kayıtlarını görebilir ve silebilirsin.${user ? ' Sildiğin kayıt, giriş yaptığın diğer cihazlardan da silinir.' : ''} Kitaplar ve sesler etkilenmez.</p>
+
+      <div class="card">
+        <h3>Kitaplardaki ilerleme <small class="count">${started.length} kitap</small></h3>
+        ${started.length ? started.map(b => `<div class="drow"><img alt="" src="${esc(b.cover)}"><span style="min-width:0"><strong>${esc(b.title)}</strong><small>${doneCount(b)} / ${b.tracks.length} bölüm dinlendi · %${Math.floor(bookPct(b))}${lastInBook(b.id) != null ? ` · kaldığın yer: Bölüm ${b.tracks[lastInBook(b.id)].no}` : ''}</small></span><button class="dbtn" type="button" data-reset="${b.id}">Sıfırla</button></div>`).join('')
+          : '<p class="empty-card">Henüz bir kitapta ilerleme yok.</p>'}
+      </div>
+
+      <div class="card">
+        <h3>Yer imleri <small class="count">${marks.length}</small></h3>
+        ${marks.length ? marks.map(m => { const b = books[m.b], t = b.tracks[m.t]; return `<div class="drow"><img alt="" src="${esc(b.cover)}"><span style="min-width:0"><strong>${m.note ? esc(m.note) : esc(t.name)}</strong><small>${esc(b.title)} · ${m.note ? esc(t.name) + ' · ' : ''}${fmt(m.pos)}</small></span><button class="dbtn icon" type="button" data-delmark="${m.id}" aria-label="Yer imini sil">${ICON_X}</button></div>`; }).join('')
+          + `<div class="drow end"><button class="dbtn" type="button" id="delMarks">Tüm yer imlerini sil</button></div>`
+          : '<p class="empty-card">Kayıtlı yer imi yok.</p>'}
+      </div>
+
+      <div class="card">
+        <h3>Dinleme geçmişi</h3>
+        ${days.size ? `<div class="drow"><span style="min-width:0;grid-column:1/3"><strong>${days.size} günlük kayıt · toplam ${human(total) || Math.round(total) + ' sn'}</strong><small>İstatistiklerdeki günlük süreler ve seri bu kayıttan hesaplanır.</small></span><button class="dbtn" type="button" id="delHistory">Geçmişi sil</button></div>`
+          : '<p class="empty-card">Dinleme geçmişi yok.</p>'}
+      </div>
+
+      <div class="card danger-zone">
+        <h3>Tümünü sil</h3>
+        <p class="hint">İlerleme, kaldığın yer, yer imleri ve dinleme geçmişi silinir. Tema, hız ve hedef ayarların kalır.</p>
+        <button class="dbtn solid" type="button" id="delAll" ${nothing ? 'disabled' : ''}>Tüm dinleme verilerimi sil</button>
+      </div>
+
+      ${user ? `<div class="card danger-zone">
+        <h3>Hesap</h3>
+        <p class="hint">${esc(user.email || '')} hesabı ve hesapta saklanan bütün kayıtlar kalıcı olarak silinir. Bu işlem geri alınamaz.</p>
+        <button class="dbtn solid" type="button" id="delAccount">Hesabımı sil</button>
+      </div>` : ''}`;
+
+    const body = $('dataBody');
+    body.querySelectorAll('[data-reset]').forEach(x => x.onclick = () => {
+      const b = books[+x.dataset.reset];
+      confirmPop('İlerlemeyi sıfırla', `<b>${esc(b.title)}</b> kitabındaki dinlenen bölümler ve kaldığın yer silinecek. Yer imlerin kalır.`, 'Sıfırla', () => { resetBook(b.id); renderData(); });
+    });
+    body.querySelectorAll('[data-delmark]').forEach(x => x.onclick = () => { deleteBookmark(x.dataset.delmark); toast('Yer imi silindi'); renderData(); });
+    body.querySelector('#delMarks')?.addEventListener('click', () => confirmPop('Tüm yer imlerini sil', `${marks.length} yer imi ve notları silinecek.`, 'Sil', () => { deleteAllBookmarks(); renderData(); }));
+    body.querySelector('#delHistory')?.addEventListener('click', () => confirmPop('Dinleme geçmişini sil', 'Günlük dinleme süreleri silinecek; istatistikler ve seri sıfırlanır. Kitaplardaki ilerlemen kalır.', 'Sil', () => { clearHistory(); renderData(); }));
+    body.querySelector('#delAll')?.addEventListener('click', () => confirmPop('Tüm dinleme verilerini sil', 'İlerleme, kaldığın yer, yer imleri ve dinleme geçmişi silinecek. Bu işlem geri alınamaz.', 'Hepsini sil', () => { clearAll(); renderData(); }));
+    body.querySelector('#delAccount')?.addEventListener('click', () => confirmPop('Hesabını sil', `<b>${esc(user.email || '')}</b> hesabı ve hesapta saklanan tüm kayıtlar kalıcı olarak silinecek. Bu cihazdaki kayıtlar da temizlenir.`, 'Hesabımı sil', async () => {
+      try { await window.skrSync.deleteAccount(); toast('Hesabın silindi'); go(''); }
+      catch (e) { toast(window.skrSync.errorText(e)); }
+    }));
   }
 
   // ---------- Günlük hatırlatma ----------
@@ -1266,11 +1430,13 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     if (sheetOpen) return;
     sheetPushed = false;
     const m = h.match(/^#kitap-(\d+)$/);
-    const show = id => ['home', 'detail', 'stats'].forEach(s => $(s).hidden = s !== id);
+    const show = id => ['home', 'detail', 'stats', 'data'].forEach(s => $(s).hidden = s !== id);
     let nav = 'home';
     if (m && books[+m[1]]) {
       if (viewBook !== +m[1]) { $('search').value = ''; window.scrollTo(0, 0); }
       viewBook = +m[1]; show('detail'); renderDetail(); nav = '';
+    } else if (h === '#verilerim') {
+      viewBook = null; show('data'); renderData(); nav = 'data'; window.scrollTo(0, 0);
     } else if (h === '#istatistik') {
       viewBook = null; show('stats'); renderStats(); nav = 'stats'; window.scrollTo(0, 0);
     } else {
@@ -1529,6 +1695,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     host.innerHTML = `<div class="pop ${dark ? 'dark' : 'light'}"><div class="pop-bg"></div><div class="pop-card" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div></div>`;
     host.querySelector('.pop-bg').onclick = closePop;
     host.querySelectorAll('[data-close]').forEach(b => b.onclick = closePop);
+    host.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { closePop(); go(b.dataset.goto); });
     onMount?.(host.querySelector('.pop-card'));
   }
 
@@ -1615,13 +1782,15 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     const sync = window.skrSync;
     if (!sync) {
       openPop(`<div class="pop-h"><h4>Hesap</h4><button class="x" type="button" data-close aria-label="Kapat">${ICON_X}</button></div>
-        <div class="acct"><p>${window.SKR_AUTH_ERROR ? esc(window.SKR_AUTH_ERROR) : 'Giriş özelliği henüz açılmadı. Şimdilik kaldığın yer bu cihazda saklanıyor.'}</p></div>`, { dark: false });
+        <div class="acct"><p>${window.SKR_AUTH_ERROR ? esc(window.SKR_AUTH_ERROR) : 'Giriş özelliği henüz açılmadı. Şimdilik kaldığın yer bu cihazda saklanıyor.'}</p>
+        <button class="sbtn" type="button" data-goto="#verilerim">Verilerimi yönet</button></div>`, { dark: false });
       return;
     }
     if (user) {
       openPop(`<div class="pop-h"><h4>Hesabım</h4><button class="x" type="button" data-close aria-label="Kapat">${ICON_X}</button></div>
         <div class="acct"><div class="me"><span class="avatar">${avatarHTML()}</span><div style="min-width:0"><strong>${esc(user.displayName || user.email)}</strong><small>${esc(user.displayName ? user.email : '')}</small></div></div>
         <p id="syncLine">${esc(syncText)}</p>
+        <button class="sbtn" type="button" data-goto="#verilerim">Verilerimi yönet</button>
         <button class="sbtn" type="button" id="signOut">Çıkış yap</button></div>`, {
         dark: false,
         onMount(card) { card.querySelector('#signOut').onclick = async () => { await sync.signOut(); closePop(); toast('Çıkış yapıldı'); }; }
@@ -1645,6 +1814,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
           ${isUp ? '' : '<button type="button" id="aReset">Şifremi unuttum</button>'}
         </div>
         <div id="aMsg"></div>
+        <button class="sbtn" type="button" data-goto="#verilerim" style="margin-top:16px">Bu cihazdaki verilerimi yönet</button>
       </div>`, {
       dark: false,
       onMount(card) {
@@ -1724,19 +1894,28 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     // Hesaptaki kayıtla birleştir: bölüm başına yeni olan kazanır
     merge(r) {
       if (!r) return;
+      // Silme zamanları: hangi cihazda silinmişse, o andan eski kayıtlar her yerde atılır
+      const le = state.epoch, re = { ...DEF().epoch, ...(r.epoch || {}) };
+      const ep = k => Math.max(le[k] || 0, re[k] || 0);
       for (const [k, v] of Object.entries(r.progress || {})) {
         const l = state.progress[k];
-        if (!l || (v.at || 0) > (l.at || 0)) state.progress[k] = v;
+        if ((v.at || 0) >= ep('progress') && (!l || (v.at || 0) > (l.at || 0))) state.progress[k] = v;
       }
       for (const [k, v] of Object.entries(r.bookmarks || {})) {
         const l = state.bookmarks[k];
-        if (!l || (v.at || 0) > (l.at || 0)) state.bookmarks[k] = v;
+        if ((v.at || 0) >= ep('bookmarks') && (!l || (v.at || 0) > (l.at || 0))) state.bookmarks[k] = v;
       }
-      // Dinleme süreleri: her cihazın her günü için büyük olan (sayaçlar yalnızca artar)
-      for (const [dev, days] of Object.entries(r.daily || {})) {
-        const l = (state.daily[dev] ||= {});
-        for (const [k, s] of Object.entries(days)) if (s > (l[k] || 0)) l[k] = s;
+      // Dinleme süreleri: her cihazın her günü için büyük olan (sayaçlar yalnızca artar);
+      // geçmiş başka cihazda silinmişse buradaki eski sayaçlar da silinir
+      if ((re.daily || 0) > (le.daily || 0)) state.daily = {};
+      if ((re.daily || 0) >= (le.daily || 0)) {
+        for (const [dev, days] of Object.entries(r.daily || {})) {
+          const l = (state.daily[dev] ||= {});
+          for (const [k, s] of Object.entries(days)) if (s > (l[k] || 0)) l[k] = s;
+        }
       }
+      for (const k of Object.keys(le)) le[k] = ep(k);
+      pruneOld();
       if ((r.updatedAt || 0) > (state.updatedAt || 0)) {
         state.last = r.last ?? null; state.lastByBook = r.lastByBook || {}; state.recent = r.recent || [];
         state.speed = r.speed || 1; state.goal = r.goal || 15; state.updatedAt = r.updatedAt;
