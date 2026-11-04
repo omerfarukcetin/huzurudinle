@@ -36,6 +36,8 @@
   --accent-fg: #ffffff;
   --accent-soft: #e1efea;
   --danger: #c2412d;
+  --warn-soft: #fbefd9;
+  --warn-fg: #8a5500;
   --tile-mix: 26%;
   --shadow: 0 1px 2px rgba(20, 30, 26, .05), 0 10px 30px rgba(20, 30, 26, .10);
   /* Çalar ve paneller: temaya uyar (açık temada açık, kapak rengiyle hafif tonlu) */
@@ -80,7 +82,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0e1211; --surface: #161b19; --surface-2: #1f2623; --fg: #ecf0ee; --muted: #98a49f; --line: #27302c;
-    --accent: #5fd0a8; --accent-fg: #06221a; --accent-soft: #17312a; --danger: #f08a74; --tile-mix: 34%;
+    --accent: #5fd0a8; --accent-fg: #06221a; --accent-soft: #17312a; --danger: #f08a74; --warn-soft: #3a2c12; --warn-fg: #f3c37a; --tile-mix: 34%;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.4);
     --pl-base: #1d201f; --pl-fg: #f5f5f2; --pl-muted: rgba(245,245,242,.62); --pl-track: rgba(245,245,242,.22); --pl-accent: #6fd3c1; --pl-panel: #262a28;
     --pl-hover: rgba(255,255,255,.08); --pl-chip: rgba(255,255,255,.09); --pl-chip-hover: rgba(255,255,255,.16); --pl-chip-on-bg: #ffffff; --pl-chip-on-fg: #161817;
@@ -91,7 +93,7 @@
 }
 :root[data-theme="dark"] {
   --bg: #0e1211; --surface: #161b19; --surface-2: #1f2623; --fg: #ecf0ee; --muted: #98a49f; --line: #27302c;
-  --accent: #5fd0a8; --accent-fg: #06221a; --accent-soft: #17312a; --danger: #f08a74; --tile-mix: 34%;
+  --accent: #5fd0a8; --accent-fg: #06221a; --accent-soft: #17312a; --danger: #f08a74; --warn-soft: #3a2c12; --warn-fg: #f3c37a; --tile-mix: 34%;
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.4);
   --pl-base: #1d201f; --pl-fg: #f5f5f2; --pl-muted: rgba(245,245,242,.62); --pl-track: rgba(245,245,242,.22); --pl-accent: #6fd3c1; --pl-panel: #262a28;
   --pl-hover: rgba(255,255,255,.08); --pl-chip: rgba(255,255,255,.09); --pl-chip-hover: rgba(255,255,255,.16); --pl-chip-on-bg: #ffffff; --pl-chip-on-fg: #161817;
@@ -536,6 +538,48 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   .stats-cols .card { margin-top: 14px; }
   .plot { height: 180px; }
 }
+/* ---------- Okuma planı ---------- */
+.plan { width: 100%; text-align: left; margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.plan:empty { display: none; }
+.plan-start { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 12px; align-items: start; width: 100%; padding: 12px 14px; border-radius: 14px; border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--line)); background: var(--surface); text-align: left; }
+.plan-start:hover { border-style: solid; }
+.plan-start svg { width: 22px; height: 22px; fill: var(--accent); margin-top: 1px; }
+.plan-start span { font-size: var(--fs-sm); color: var(--muted); line-height: 1.35; }
+.plan-start b { display: block; color: var(--fg); font-size: var(--fs-base); margin-bottom: 2px; }
+.plan-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.plan-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.plan-h strong { font-size: var(--fs-base); }
+.plan-day { font-size: var(--fs-xs); color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.chip-status { align-self: flex-start; padding: 4px 10px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 700; background: var(--surface-2); color: var(--fg); }
+.chip-status.good { background: var(--accent-soft); color: var(--accent); }
+.chip-status.warn { background: var(--warn-soft); color: var(--warn-fg); }
+.chip-status.sm { display: inline-block; margin-top: 8px; padding: 2px 8px; }
+.plan-today { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: var(--fs-sm); }
+.plan-today b { font-variant-numeric: tabular-nums; }
+.plan-today small { font-size: var(--fs-xs); color: var(--muted); }
+.plan-card .gbar { height: 6px; border-radius: 6px; background: var(--surface-2); overflow: hidden; margin-top: -4px; }
+.plan-card .gbar i { display: block; height: 100%; background: var(--accent); border-radius: 6px; }
+.plan-list { display: flex; flex-direction: column; border-top: 1px solid var(--line); padding-top: 8px; }
+.plan-list > small { font-size: var(--fs-xs); color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 2px 0 4px; }
+.plan-list > small:last-child { text-transform: none; letter-spacing: 0; font-weight: 500; padding-top: 6px; }
+.plan-list button { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 0; text-align: left; font-size: var(--fs-sm); }
+.plan-list button:hover .nm { color: var(--accent); }
+.plan-list .no { font-size: var(--fs-xs); color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.plan-list .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.plan-list .d { font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.btn-plan { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px; border-radius: 12px; background: var(--accent); color: var(--accent-fg); font-weight: 700; font-size: var(--fs-sm); }
+.btn-plan svg { width: 18px; height: 18px; fill: currentColor; }
+.plan-est { display: flex; gap: 8px; align-items: flex-start; margin: 0; font-size: var(--fs-sm); color: var(--muted); line-height: 1.4; }
+.plan-est svg { width: 18px; height: 18px; fill: currentColor; flex: none; margin-top: 1px; }
+.plan-acts { display: flex; gap: 16px; border-top: 1px solid var(--line); padding-top: 10px; }
+.plan-acts button { font-size: var(--fs-sm); font-weight: 700; color: var(--accent); }
+.plan-acts button + button { color: var(--muted); }
+.plan-preview { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 12px; background: var(--chip); margin-top: 14px; font-size: var(--fs-sm); color: var(--muted-c); }
+.plan-preview strong { color: inherit; font-size: var(--fs-lg); color: var(--fg); }
+.plan-preview .warn { color: var(--warn-fg); margin-top: 4px; }
+.pop .pills .pill { background: var(--chip); }
+.pop .pills .pill[aria-pressed="true"] { background: var(--chip-on-bg); color: var(--chip-on-fg); }
+
 /* ---------- Verilerim ---------- */
 .card h3 .count { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); margin-left: 6px; }
 .drow { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
@@ -635,7 +679,11 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   /* Kitap detayı: solda kapak ve bilgiler (sabit), sağda konu başlıkları */
   .hero { margin-top: -64px; padding-top: 64px; background: linear-gradient(180deg, color-mix(in srgb, var(--tint, #888) calc(var(--tile-mix) + 6%), var(--bg)) 0, var(--bg) 420px); }
   .detail-grid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 56px; align-items: start; padding-top: 8px; padding-bottom: 40px; }
-  .d-info { position: sticky; top: 80px; align-items: flex-start; text-align: left; padding: 0; gap: 8px; }
+  /* Sol sütun sabit kalır; plan kartıyla ekrandan uzunsa kendi içinde kayar */
+  .d-info { position: sticky; top: 80px; align-items: flex-start; text-align: left; padding: 0 6px 0 0; gap: 8px;
+    max-height: calc(100vh - 96px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  body.has-mini .d-info { max-height: calc(100vh - 96px - var(--bar-h)); }
+  .d-info img { flex: none; }
   .d-info img { width: 260px; margin: 0 0 16px; }
   .d-info h2 { font-size: var(--fs-3xl); }
   .d-info .meta { justify-content: flex-start; }
@@ -763,6 +811,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
           <p class="sub" id="dSub"></p>
           <div class="meta" id="dMeta"></div>
           <button class="cta" id="dPlay" type="button"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span>Dinlemeye başla</span></button>
+          <div class="plan" id="dPlan"></div>
         </div>
         <div class="d-list">
           <div class="listhead"><h3>Konu başlıkları</h3><small id="dCount"></small></div>
@@ -921,7 +970,8 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   // daily[cihaz][YYYY-AA-GG] = dinlenen saniye (her cihaz kendi sayacını tutar, toplam = hepsinin toplamı)
   // last / lastByBook / recent / speed / goal: updatedAt'ı yeni olan taraf kazanır
   // epoch: "şu andan önceki kayıtları sil" zamanları (silme işlemi senkronla diğer cihazlara da geçsin diye)
-  const DEF = () => ({ v: 2, progress: {}, bookmarks: {}, daily: {}, last: null, lastByBook: {}, recent: [], speed: 1, goal: 15, updatedAt: 0, epoch: { progress: 0, bookmarks: 0, daily: 0 } });
+  // plans[kitap] = {start, end (YYYY-AA-GG), base: plan başında dinlenmiş içerik sn, snap: {day, listened}, at, deleted?}
+  const DEF = () => ({ v: 2, progress: {}, bookmarks: {}, daily: {}, plans: {}, last: null, lastByBook: {}, recent: [], speed: 1, goal: 15, updatedAt: 0, epoch: { progress: 0, bookmarks: 0, daily: 0, plans: 0 } });
   let state = loadState();
   const DEVICE = store.get('device', null) || (() => { const id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); store.set('device', id); return id; })();
 
@@ -949,6 +999,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     const e = state.epoch;
     for (const [k, v] of Object.entries(state.progress)) if ((v.at || 0) < e.progress) delete state.progress[k];
     for (const [k, v] of Object.entries(state.bookmarks)) if ((v.at || 0) < e.bookmarks) delete state.bookmarks[k];
+    for (const [k, v] of Object.entries(state.plans)) if ((v.at || 0) < e.plans) delete state.plans[k];
   }
   // Silme işlemleri beklemeden hesaba yazılır
   const saveNow = () => { persist(true); window.skrSync?.flush(); };
@@ -1041,6 +1092,25 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     const add = el => el && host.appendChild(el);
     const recent = state.recent.map(bookByKey).filter(b => b && lastInBook(b.id) != null);
 
+    // Bugünün planı: planı olan her kitap için bugünkü hedef ve durum
+    const planned = books.map(b => ({ b, pl: planInfo(b) })).filter(x => x.pl);
+    add(shelf('Bugünün planı', planned, { wide: true, render: ({ b, pl }) => {
+      const el = document.createElement('button');
+      el.type = 'button'; el.className = 'cont';
+      el.style.setProperty('--tint', b.tint || '#888');
+      const pct = pl.target ? Math.min(100, pl.doneToday / pl.target * 100) : 100;
+      el.innerHTML = `<div class="tile"><img alt="" src="${esc(b.cover)}"></div>
+        <div style="min-width:0"><div class="t">${esc(b.title)}</div>
+        <div class="s">${pl.finished ? 'Tamamlandı' : `Bugün ${human(atSpeed(pl.doneToday)) || '0 dk'} / ${human(atSpeed(pl.target)) || '1 dk'} · Gün ${pl.dayNo}/${pl.totalDays}`}</div>
+        <div class="cbar"><i style="width:${pct.toFixed(1)}%"></i></div>
+        <span class="chip-status ${pl.tone} sm">${esc(pl.status)}</span></div>`;
+      el.onclick = () => {
+        const tr = todaysTracks(b, pl.todayLeft);
+        if (tr.length) { if (!cur || cur.b !== b.id || cur.t !== tr[0].t) play(b.id, tr[0].t); openSheet(); }
+        else go(`#kitap-${b.id}`);
+      };
+      return el;
+    } }));
     add(shelf('Dinlemeye devam et', recent, { wide: true, render: b => {
       const ti = lastInBook(b.id), t = b.tracks[ti], p = prog(t);
       const el = document.createElement('button');
@@ -1208,6 +1278,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     // Silindi işareti: diğer cihazlarda daha eski konum olsa bile bu kazanır
     b.tracks.forEach(t => { if (state.progress[t.key]) state.progress[t.key] = { pos: 0, dur: state.progress[t.key].dur || t.dur || 0, done: false, at: now }; });
     delete state.lastByBook[b.key];
+    if (state.plans[b.key]) state.plans[b.key] = { deleted: true, at: now };
     state.recent = state.recent.filter(k => k !== b.key);
     if (state.last && keys.has(state.last)) { stopIfIn(keys); state.last = null; }
     saveNow();
@@ -1222,8 +1293,8 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   function clearAll() {
     const now = Date.now();
     stopIfIn(null);
-    state.epoch = { progress: now, bookmarks: now, daily: now };
-    Object.assign(state, { progress: {}, bookmarks: {}, daily: {}, last: null, lastByBook: {}, recent: [] });
+    state.epoch = { progress: now, bookmarks: now, daily: now, plans: now };
+    Object.assign(state, { progress: {}, bookmarks: {}, daily: {}, plans: {}, last: null, lastByBook: {}, recent: [] });
     saveNow();
     toast('Tüm dinleme verilerin silindi');
   }
@@ -1234,7 +1305,8 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
       .map(([id, m]) => ({ id, ...m, ...byKey.get(m.k) })).sort((x, y) => y.at - x.at);
     const days = new Set(Object.values(state.daily || {}).flatMap(Object.keys));
     const total = [...days].reduce((n, k) => n + daySum(k), 0);
-    const nothing = !started.length && !marks.length && !days.size;
+    const plans = books.filter(b => activePlan(b));
+    const nothing = !started.length && !marks.length && !days.size && !plans.length;
 
     $('dataBody').innerHTML = `
       <h2 class="pt">Verilerim</h2>
@@ -1254,6 +1326,12 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
       </div>
 
       <div class="card">
+        <h3>Okuma planları <small class="count">${plans.length}</small></h3>
+        ${plans.length ? plans.map(b => { const p = activePlan(b); return `<div class="drow"><img alt="" src="${esc(b.cover)}"><span style="min-width:0"><strong>${esc(b.title)}</strong><small>${dateWords(p.start)} – ${dateWords(p.end)} · ${dayDiff(p.start, p.end) + 1} gün</small></span><button class="dbtn icon" type="button" data-delplan="${b.id}" aria-label="Planı kaldır">${ICON_X}</button></div>`; }).join('')
+          : '<p class="empty-card">Okuma planı yok. Kitap sayfasından plan oluşturabilirsin.</p>'}
+      </div>
+
+      <div class="card">
         <h3>Dinleme geçmişi</h3>
         ${days.size ? `<div class="drow"><span style="min-width:0;grid-column:1/3"><strong>${days.size} günlük kayıt · toplam ${human(total) || Math.round(total) + ' sn'}</strong><small>İstatistiklerdeki günlük süreler ve seri bu kayıttan hesaplanır.</small></span><button class="dbtn" type="button" id="delHistory">Geçmişi sil</button></div>`
           : '<p class="empty-card">Dinleme geçmişi yok.</p>'}
@@ -1261,7 +1339,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
 
       <div class="card danger-zone">
         <h3>Tümünü sil</h3>
-        <p class="hint">İlerleme, kaldığın yer, yer imleri ve dinleme geçmişi silinir. Tema, hız ve hedef ayarların kalır.</p>
+        <p class="hint">İlerleme, kaldığın yer, yer imleri, okuma planları ve dinleme geçmişi silinir. Tema, hız ve hedef ayarların kalır.</p>
         <button class="dbtn solid" type="button" id="delAll" ${nothing ? 'disabled' : ''}>Tüm dinleme verilerimi sil</button>
       </div>
 
@@ -1276,6 +1354,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
       const b = books[+x.dataset.reset];
       confirmPop('İlerlemeyi sıfırla', `<b>${esc(b.title)}</b> kitabındaki dinlenen bölümler ve kaldığın yer silinecek. Yer imlerin kalır.`, 'Sıfırla', () => { resetBook(b.id); renderData(); });
     });
+    body.querySelectorAll('[data-delplan]').forEach(x => x.onclick = () => { const b = books[+x.dataset.delplan]; state.plans[b.key] = { deleted: true, at: Date.now() }; saveNow(); toast('Plan kaldırıldı'); renderData(); });
     body.querySelectorAll('[data-delmark]').forEach(x => x.onclick = () => { deleteBookmark(x.dataset.delmark); toast('Yer imi silindi'); renderData(); });
     body.querySelector('#delMarks')?.addEventListener('click', () => confirmPop('Tüm yer imlerini sil', `${marks.length} yer imi ve notları silinecek.`, 'Sil', () => { deleteAllBookmarks(); renderData(); }));
     body.querySelector('#delHistory')?.addEventListener('click', () => confirmPop('Dinleme geçmişini sil', 'Günlük dinleme süreleri silinecek; istatistikler ve seri sıfırlanır. Kitaplardaki ilerlemen kalır.', 'Sil', () => { clearHistory(); renderData(); }));
@@ -1355,6 +1434,154 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   }
   $('installX').onclick = () => { store.set('installDismissed', Date.now()); paintInstall(); };
 
+  // ---------- Okuma planı ve bitiş tahmini ----------
+  // Tüm süreler "içerik saniyesi"dir (1× hızda). Dinlerken geçen gerçek süre = içerik / hız.
+  const dayDiff = (a, b) => Math.round((Date.parse(b + 'T12:00:00') - Date.parse(a + 'T12:00:00')) / 864e5);
+  const addDays = (k, n) => { const d = new Date(k + 'T12:00:00'); d.setDate(d.getDate() + n); return dayKey(d); };
+  const dateWords = k => new Date(k + 'T12:00:00').toLocaleDateString('tr', { day: 'numeric', month: 'long' });
+  const atSpeed = s => s / (speed || 1); // içerik süresini seçili hızda geçen süreye çevir
+  const remainingOf = b => Math.max(0, b.total - listened(b));
+  const activePlan = b => { const p = state.plans[b.key]; return p && !p.deleted && p.start ? p : null; };
+
+  // Son 14 günde (ya da dinlemeye başladığından beri) günde ortalama ne kadar içerik dinlendiği
+  function pace() {
+    const days = [...new Set(Object.values(state.daily || {}).flatMap(Object.keys))].sort();
+    if (!days.length) return 0;
+    const n = Math.min(14, dayDiff(days[0], dayKey()) + 1);
+    let wall = 0;
+    for (let i = 0; i < n; i++) wall += daySum(addDays(dayKey(), -i));
+    return wall / n * (speed || 1);
+  }
+
+  function planInfo(b) {
+    const p = activePlan(b); if (!p) return null;
+    const today = dayKey(), L = listened(b), rem = remainingOf(b);
+    // Günün başındaki durum: bugünkü hedef ve "bugün dinlenen" buna göre hesaplanır
+    if (!p.snap || p.snap.day !== today) { p.snap = { day: today, listened: L }; store.set('state', state); }
+    const totalDays = dayDiff(p.start, p.end) + 1;
+    const dayNo = Math.min(totalDays, Math.max(1, dayDiff(p.start, today) + 1));
+    const overdue = dayDiff(today, p.end) < 0;
+    const daysLeft = overdue ? 1 : dayDiff(today, p.end) + 1;
+    const remAtDayStart = Math.max(0, b.total - p.snap.listened);
+    const target = remAtDayStart / daysLeft;                 // bugünün hedefi (geride kalınca kendiliğinden büyür)
+    const doneToday = Math.max(0, L - p.snap.listened);
+    const todayLeft = Math.max(0, target - doneToday);
+    // Plana göre bugün başında nerede olunmalıydı
+    const expected = p.base + (b.total - p.base) * Math.min(1, (dayNo - 1) / totalDays);
+    const behind = expected - p.snap.listened;               // + geride, − önde (içerik saniyesi)
+    const finished = rem < 60;
+    let status, tone;
+    if (finished) { status = 'Kitap bitti, tebrikler!'; tone = 'good'; }
+    else if (overdue) { status = `Plan süresi doldu (bitiş ${dateWords(p.end)}); ${human(rem)} kaldı`; tone = 'warn'; }
+    else if (todayLeft < 30) { status = 'Bugünün hedefi tamam'; tone = 'good'; }
+    else if (behind > 10 * 60) { status = `Plana göre ${human(behind)} gerideysin`; tone = 'warn'; }
+    else if (behind < -10 * 60) { status = `Plandan ${human(-behind)} öndesin`; tone = 'good'; }
+    else { status = 'Plana uygun gidiyorsun'; tone = 'ok'; }
+    return { p, totalDays, dayNo, daysLeft, overdue, target, doneToday, todayLeft, behind, finished, rem, status, tone };
+  }
+
+  // Bugün dinlenecek bölümler: kaldığın yerden başlayıp bugünün kalan hedefi dolana kadar
+  function todaysTracks(b, need) {
+    const out = [];
+    if (need < 30) return out;
+    let start = lastInBook(b.id) ?? 0;
+    if (prog(b.tracks[start])?.done) start = b.tracks.findIndex((t, j) => j > start && !prog(t)?.done);
+    if (start < 0) start = b.tracks.findIndex(t => !prog(t)?.done);
+    if (start < 0) return out;
+    let sum = 0;
+    for (let j = start; j < b.tracks.length && sum < need; j++) {
+      const t = b.tracks[j], p = prog(t);
+      if (p?.done) continue;
+      const left = Math.max(0, (t.dur || p?.dur || 0) - (p?.pos || 0));
+      if (left <= 0) continue;
+      const part = Math.min(left, need - sum);
+      out.push({ t: j, left, part, partial: part < left - 30 });
+      sum += part;
+    }
+    return out;
+  }
+
+  function finishEstimate(b) {
+    const rem = remainingOf(b);
+    if (rem < 60) return null;
+    const pl = planInfo(b);
+    const v = pace();
+    if (!v) return { text: pl ? `Plana göre bitiş: ${dateWords(pl.p.end)}.` : 'Bitiş tahmini için birkaç gün dinlemen yeterli.' };
+    const days = Math.ceil(rem / v);
+    const when = addDays(dayKey(), days - 1);
+    let text = `Günde ortalama ${human(atSpeed(v)) || '1 dk'} dinlediğine göre yaklaşık ${days} günde biter (${dateWords(when)}).`;
+    if (pl && !pl.overdue) {
+      const diff = dayDiff(pl.p.end, when);
+      text += diff > 0 ? ` Bu tempoyla plandan ${diff} gün geç.` : diff < 0 ? ` Bu tempoyla plandan ${-diff} gün erken.` : ' Planla aynı gün.';
+    }
+    return { text };
+  }
+
+  function renderPlanCard(b) {
+    const host = $('dPlan');
+    const pl = planInfo(b), est = finishEstimate(b);
+    const estLine = est ? `<p class="plan-est"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7z"/></svg><span>${esc(est.text)}</span></p>` : '';
+    if (!pl) {
+      host.innerHTML = remainingOf(b) < 60 ? '' : `${estLine}<button class="plan-start" type="button" id="planNew"><svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14zM7 12h5v5H7z"/></svg><span><b>Okuma planı oluştur</b>Kaç günde bitirmek istediğini seç; her gün ne dinleyeceğini hazırlayalım.</span></button>`;
+      host.querySelector('#planNew')?.addEventListener('click', () => openPlanSetup(b));
+      return;
+    }
+    const tracks = todaysTracks(b, pl.todayLeft);
+    const pct = pl.target ? Math.min(100, pl.doneToday / pl.target * 100) : 100;
+    host.innerHTML = `<div class="plan-card">
+      <div class="plan-h"><strong>Okuma planı</strong><span class="plan-day">Gün ${pl.dayNo} / ${pl.totalDays}</span></div>
+      <span class="chip-status ${pl.tone}">${esc(pl.status)}</span>
+      ${pl.finished ? '' : `<div class="plan-today"><span>Bugün <b>${human(atSpeed(pl.doneToday)) || '0 dk'}</b> / ${human(atSpeed(pl.target)) || '1 dk'}</span><small>${fmtSpeed(speed)} hızda · hedef ${dateWords(pl.p.end)}</small></div>
+      <div class="gbar"><i style="width:${pct.toFixed(1)}%"></i></div>`}
+      ${tracks.length ? `<div class="plan-list"><small>Bugünün bölümleri</small>${tracks.slice(0, 5).map(x => { const t = b.tracks[x.t]; return `<button type="button" data-plan-t="${x.t}"><span class="no">${t.no}</span><span class="nm">${esc(t.name)}</span><span class="d">${x.partial ? `ilk ${human(atSpeed(x.part))}` : human(atSpeed(x.part))}</span></button>`; }).join('')}${tracks.length > 5 ? `<small>ve ${tracks.length - 5} bölüm daha</small>` : ''}</div>
+        <button class="btn-plan" type="button" id="planGo"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Bugünün planını dinle</button>` : ''}
+      ${estLine}
+      <div class="plan-acts"><button type="button" id="planEdit">Planı değiştir</button><button type="button" id="planDel">Planı kaldır</button></div>
+    </div>`;
+    host.querySelectorAll('[data-plan-t]').forEach(x => x.onclick = () => play(b.id, +x.dataset.planT));
+    host.querySelector('#planGo')?.addEventListener('click', () => { if (cur && cur.b === b.id && cur.t === tracks[0].t) { if (audio.paused) toggle(); } else play(b.id, tracks[0].t); });
+    host.querySelector('#planEdit').onclick = () => openPlanSetup(b);
+    host.querySelector('#planDel').onclick = () => confirmPop('Planı kaldır', `<b>${esc(b.title)}</b> için okuma planı kaldırılacak. Dinleme ilerlemen kalır.`, 'Kaldır', () => { state.plans[b.key] = { deleted: true, at: Date.now() }; saveNow(); toast('Plan kaldırıldı'); route(); });
+  }
+
+  function openPlanSetup(b) {
+    const rem = remainingOf(b), old = activePlan(b);
+    const presets = [7, 14, 30, 60, 90];
+    let days = old ? Math.max(1, dayDiff(dayKey(), old.end) + 1) : 30;
+    openPop(`<div class="pop-h"><h4>Okuma planı</h4><button class="x" type="button" data-close aria-label="Kapat">${ICON_X}</button></div>
+      <p class="note" style="margin:0 0 14px"><b>${esc(b.title)}</b> · kalan ${human(rem)} (1× hızda)</p>
+      <div class="setrow" style="border:0;padding:0 0 8px"><span>Kaç günde bitirmek istiyorsun?</span></div>
+      <div class="pills" id="planPills">${presets.map(v => `<button class="pill" type="button" data-days="${v}">${v} gün</button>`).join('')}</div>
+      <label class="chk" style="margin-top:12px">ya da <input type="text" id="planDays" inputmode="numeric" aria-label="Gün sayısı" style="width:64px"> gün</label>
+      <div class="plan-preview" id="planPreview"></div>
+      <div class="btn-grid"><button class="btn2" type="button" data-close>Vazgeç</button><button class="btn2 primary" type="button" id="planSave">${old ? 'Planı güncelle' : 'Planı başlat'}</button></div>`, {
+      dark: false,
+      onMount(card) {
+        const input = card.querySelector('#planDays');
+        const paint = () => {
+          card.querySelectorAll('[data-days]').forEach(x => x.setAttribute('aria-pressed', +x.dataset.days === days));
+          input.value = days;
+          const per = rem / days, end = addDays(dayKey(), days - 1);
+          card.querySelector('#planPreview').innerHTML = `<strong>Günde yaklaşık ${human(per) || '1 dk'}</strong>
+            ${speed !== 1 ? `<span>${fmtSpeed(speed)} hızda ${human(atSpeed(per)) || '1 dk'}</span>` : ''}
+            <span>Bitiş: ${dateWords(end)}</span>
+            ${per > 3 * 3600 ? '<span class="warn">Bu plan günde 3 saatten fazla dinlemek demek; daha uzun bir süre seçebilirsin.</span>' : ''}`;
+        };
+        card.querySelectorAll('[data-days]').forEach(x => x.onclick = () => { days = +x.dataset.days; paint(); });
+        input.oninput = () => { const n = parseInt(input.value, 10); if (n >= 1 && n <= 730) { days = n; card.querySelectorAll('[data-days]').forEach(x => x.setAttribute('aria-pressed', +x.dataset.days === days)); const per = rem / days; card.querySelector('#planPreview strong').textContent = `Günde yaklaşık ${human(per) || '1 dk'}`; } };
+        input.onchange = paint;
+        paint();
+        card.querySelector('#planSave').onclick = () => {
+          const today = dayKey(), L = listened(b);
+          state.plans[b.key] = { start: today, end: addDays(today, days - 1), base: L, snap: { day: today, listened: L }, at: Date.now() };
+          saveNow(); closePop();
+          toast(`Plan başladı: günde yaklaşık ${human(atSpeed(rem / days)) || '1 dk'}`);
+          route();
+        };
+      }
+    });
+  }
+
   // ---------- Kitap detayı ----------
   function renderDetail() {
     const b = books[viewBook]; if (!b) return;
@@ -1370,6 +1597,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     $('dCount').textContent = `${b.tracks.length} bölüm`;
     const r = lastInBook(b.id);
     $('dPlay').querySelector('span').textContent = r != null ? `Devam et · Bölüm ${b.tracks[r].no}` : 'Dinlemeye başla';
+    renderPlanCard(b);
     renderList();
   }
 
@@ -1417,7 +1645,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
       if (r) {
         shared = { ...r, pos: +(sh[3] || 0) };
         if (cur) { play(r.b, r.t, shared.pos); shared = null; } else showNow(r, shared.pos);
-        toast(shared ? `Paylaşılan bölüm hazır · ${fmt(shared.pos)}'dan başlar` : 'Paylaşılan bölüm açıldı');
+        toast(shared ? `Paylaşılan bölüm hazır · başlangıç ${fmt(shared.pos)}` : 'Paylaşılan bölüm açıldı');
         history.replaceState(null, '', location.pathname + location.search + '#calar');
         return route();
       }
@@ -1573,7 +1801,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   function setPlayIcon(on) {
     $$('.pi').forEach(s => s.innerHTML = on ? ICON_PAUSE : ICON_PLAY);
     $$('[data-act="play"]').forEach(x => x.setAttribute('aria-label', on ? 'Duraklat' : 'Çal'));
-    if (viewBook != null && cur?.b === viewBook) renderList();
+    if (viewBook != null && cur?.b === viewBook) { renderList(); renderPlanCard(books[viewBook]); }
   }
 
   $$('.seekbar').forEach(s => {
@@ -1664,7 +1892,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
       onMount(card) {
         const at = card.querySelector('#shAt'), time = card.querySelector('#shTime');
         const sec = () => at.checked ? (parseTime(time.value) ?? pos) : 0;
-        const text = () => `“${t.name}” — ${b.title}${sec() ? ` (${fmt(sec())}'dan itibaren)` : ''}`;
+        const text = () => `“${t.name}” — ${b.title}${sec() ? ` (başlangıç: ${fmt(sec())})` : ''}`;
         const upd = () => {
           const url = shareLink(t, sec());
           card.querySelector('#shLink').textContent = url;
@@ -1904,6 +2132,10 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
       for (const [k, v] of Object.entries(r.bookmarks || {})) {
         const l = state.bookmarks[k];
         if ((v.at || 0) >= ep('bookmarks') && (!l || (v.at || 0) > (l.at || 0))) state.bookmarks[k] = v;
+      }
+      for (const [k, v] of Object.entries(r.plans || {})) {
+        const l = state.plans[k];
+        if ((v.at || 0) >= ep('plans') && (!l || (v.at || 0) > (l.at || 0))) state.plans[k] = v;
       }
       // Dinleme süreleri: her cihazın her günü için büyük olan (sayaçlar yalnızca artar);
       // geçmiş başka cihazda silinmişse buradaki eski sayaçlar da silinir
