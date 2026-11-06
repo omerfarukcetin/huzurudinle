@@ -538,6 +538,28 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   .stats-cols .card { margin-top: 14px; }
   .plot { height: 180px; }
 }
+/* ---------- Ana sekmeler ve Sesli Yayınlar ---------- */
+.subtabs { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 16px calc(-1 * var(--gutter-r)) 0 calc(-1 * var(--gutter-l)); padding: 2px var(--gutter-r) 4px var(--gutter-l); }
+.subtabs::-webkit-scrollbar { display: none; }
+.subtabs button { flex: none; padding: 8px 14px; border-radius: 999px; background: var(--surface-2); color: var(--muted); font-size: var(--fs-sm); font-weight: 700; white-space: nowrap; }
+.subtabs button:hover { color: var(--fg); }
+.subtabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-fg); }
+.series-head { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 16px; align-items: center; padding-block: 18px 12px; }
+.series-head img { width: 84px; height: auto; filter: drop-shadow(0 6px 10px rgba(0,0,0,.22)); }
+.series-head h2 { font-size: var(--fs-xl); }
+.series-head p { margin: 2px 0 10px; font-size: var(--fs-sm); color: var(--muted); }
+.series-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.series-acts .btn-plan { padding: 9px 14px; }
+.series-acts a { font-size: var(--fs-sm); font-weight: 700; color: var(--accent); }
+.series-tools { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 6px; }
+.series-tools select { flex: 1 1 200px; min-width: 0; font: inherit; font-size: var(--fs-base); padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); }
+.series-tools .search { flex: 2 1 240px; margin: 0; }
+@media (min-width: 768px) { .subtabs { flex-wrap: wrap; overflow-x: visible; margin-inline: 0; padding-inline: 0; } }
+.mtabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; padding: 3px; border-radius: 12px; background: var(--surface-2); margin-top: 14px; max-width: 360px; }
+.mtabs a { padding: 8px; border-radius: 9px; text-align: center; text-decoration: none; color: var(--muted); font-size: var(--fs-sm); font-weight: 700; }
+.mtabs a.active { background: var(--surface); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+@media (min-width: 1024px) { .mtabs { margin-top: 18px; } }
+
 /* ---------- Okuma planı ---------- */
 .plan { width: 100%; text-align: left; margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
 .plan:empty { display: none; }
@@ -731,6 +753,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   <nav class="nav">
     <a href="#" data-nav="home"><svg viewBox="0 0 24 24"><path d="M12 3 3 10.5V21h6v-6h6v6h6V10.5z"/></svg>Ana sayfa</a>
     <a href="#istatistik" data-nav="stats"><svg viewBox="0 0 24 24"><path d="M4 20h16v-2H4zm1-4h3V9H5zm5.5 0h3V4h-3zm5.5 0h3v-5h-3z"/></svg>İstatistikler</a>
+    <a href="#sesli" data-nav="audio" data-has-series hidden><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0-9 9v6a3 3 0 0 0 3 3h2v-8H5v-1a7 7 0 0 1 14 0v1h-3v8h2a3 3 0 0 0 3-3v-6a9 9 0 0 0-9-9z"/></svg>Sesli Yayınlar</a>
     <a href="#verilerim" data-nav="data"><svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5zm0 2.2 6 2.2V11c0 4-2.6 7.7-6 8.9-3.4-1.2-6-4.9-6-8.9V6.4zM11 7v6h2V7zm0 8v2h2v-2z"/></svg>Verilerim</a>
     <button type="button" data-act="install" data-install hidden><svg viewBox="0 0 24 24"><path d="M11 3h2v9.2l3.3-3.3 1.4 1.4L12 16l-5.7-5.7 1.4-1.4 3.3 3.3zM5 19h14v2H5z"/></svg>Uygulamayı yükle</button>
   </nav>
@@ -758,7 +781,11 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
           <button class="avatar" type="button" data-act="account" data-avatar aria-label="Hesap"></button>
         </div>
       </header>
-      <div class="gsearch">
+      <nav class="mtabs" id="mainTabs" aria-label="Bölümler" hidden>
+        <a href="#" data-mtab="books">Kitaplar</a>
+        <a href="#sesli" data-mtab="audio" data-has-series hidden>Sesli Yayınlar</a>
+      </nav>
+      <div class="gsearch" id="gSearchBox">
         <label class="search">
           <svg viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 9.5 16a6.5 6.5 0 0 0 4.2-1.6l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
           <input id="gSearch" type="search" placeholder="Tüm kitaplarda konu ara: namaz, îmân…" aria-label="Tüm kitaplarda ara" autocomplete="off" enterkeyhint="search">
@@ -776,6 +803,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
       </button>
       <div class="results" id="results" hidden></div>
       <div id="shelves"></div>
+      <div id="audioHost" hidden></div>
       <p class="foot" id="summary"></p>
     </div>
   </section>
@@ -959,11 +987,14 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   const books = (window.BOOKS || []).map((b, i) => {
     const tracks = b.tracks.map((t, j) => ({ ...t, key: trackKey(t.url), no: (t.url.split('/').pop().match(/^(\d+)/) || [, String(j + 1)])[1] }));
     const pt = prettyTitle(b.title);
-    const book = { ...b, title: b.name || pt.title, sub: pt.sub, id: i, key: tracks[0]?.key.split('|')[0] || String(i), tracks, total: tracks.reduce((n, t) => n + (t.dur || 0), 0) };
+    const book = { ...b, title: b.name || pt.title, sub: pt.sub, id: i, key: b.key || tracks[0]?.key.split('|')[0] || String(i), tracks, total: tracks.reduce((n, t) => n + (t.dur || 0), 0) };
     tracks.forEach((t, j) => byKey.set(t.key, { b: i, t: j }));
     return book;
   });
   const bookByKey = k => books.find(b => b.key === k);
+  // Kitaplar rafta, seriler Sesli Yayınlar sekmesinde görünür; çalma, kayıt ve arama ikisinde de aynıdır
+  const shelfBooks = books.filter(b => b.section !== 'seri');
+  const seriesBooks = books.filter(b => b.section === 'seri');
 
   // ---------- Durum: yerelde saklanır, giriş yapılmışsa hesapla senkronlanır ----------
   // progress[trackKey] = {pos, dur, done, at}; bookmarks[id] = {k, pos, note?, at, deleted?}
@@ -1126,19 +1157,20 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     // Tüm kitaplar: ekran daraldıkça alt satıra geçen ızgara
     const all = document.createElement('section');
     all.className = 'shelf';
-    all.innerHTML = `<div class="shelf-h"><h2>Tüm kitaplar</h2><small class="count">${books.length} kitap</small></div><div class="grid"></div>`;
-    books.forEach(b => all.querySelector('.grid').appendChild(bookCard(b)));
+    all.innerHTML = `<div class="shelf-h"><h2>Tüm kitaplar</h2><small class="count">${shelfBooks.length} kitap</small></div><div class="grid"></div>`;
+    shelfBooks.forEach(b => all.querySelector('.grid').appendChild(bookCard(b)));
     add(all);
 
     const total = books.reduce((n, b) => n + b.tracks.length, 0);
     const secs = books.reduce((n, b) => n + b.total, 0);
     $('summary').textContent = books.length
-      ? `${books.length} kitap · ${total.toLocaleString('tr')} bölüm · yaklaşık ${Math.round(secs / 3600)} saat`
+      ? `${shelfBooks.length} kitap${seriesBooks.length ? ` · ${seriesBooks.length} seri` : ''} · ${total.toLocaleString('tr')} bölüm · yaklaşık ${Math.round(secs / 3600)} saat`
       : 'books.js bulunamadı. Önce linkleri_topla.ps1, sonra kapak_ve_sure.py betiğini çalıştırın.';
     $('signinHint').hidden = !!user || !window.SKR_AUTH_READY || !state.recent.length;
     const first = user?.displayName?.split(' ')[0];
     $('greet').textContent = first ? `Hoş geldin, ${first}` : 'Ana sayfa';
     renderSearch();
+    paintHomeTab();
   }
 
   // Sol menüde son dinlenen kitaplar (bilgisayar)
@@ -1434,6 +1466,86 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   }
   $('installX').onclick = () => { store.set('installDismissed', Date.now()); paintInstall(); };
 
+  let homeTab = 'books';
+
+  function paintHomeTab() {
+    const series = homeTab === 'audio';
+    $('gSearchBox').hidden = series;
+    $('shelves').hidden = series || !$('results').hidden;
+    if (series) { $('results').hidden = true; $('summary').hidden = true; $('signinHint').hidden = true; }
+    $('audioHost').hidden = !series;
+    $$('[data-mtab]').forEach(a => a.classList.toggle('active', a.dataset.mtab === homeTab));
+    if (series) renderAudio();
+  }
+
+  // ---------- Sesli Yayınlar: her seri ayrı sekmede ----------
+  let audioSel = store.get('audioTab', null), audioQuery = '', audioFollow = null;
+  const audioGroup = {}; // seri -> seçili grup (Tefsir'de sure)
+  function renderAudio() {
+    const host = $('audioHost');
+    const b = seriesBooks.find(x => x.key === audioSel) || seriesBooks[0];
+    if (!b) { host.innerHTML = ''; return; }
+    const left = host.querySelector('.subtabs')?.scrollLeft || 0;
+    const r = lastInBook(b.id), done = doneCount(b);
+    // Gruplu seride (Tefsir) yalnızca seçili sure listelenir; çalan bölüm değişince seçim onu izler
+    const groups = [...new Set(b.tracks.map(t => t.group).filter(Boolean))];
+    if (groups.length) {
+      const follow = cur?.b === b.id ? cur.t : null;
+      if (follow != null && follow !== audioFollow) audioGroup[b.key] = b.tracks[follow].group;
+      audioFollow = follow;
+      if (!audioGroup[b.key]) audioGroup[b.key] = r != null ? b.tracks[r].group : groups[0];
+    }
+    const hadFocus = document.activeElement?.id === 'seriesSearch';
+    host.innerHTML = `<div class="subtabs" role="tablist" aria-label="Seriler">${seriesBooks.map(x => `<button type="button" role="tab" data-series="${x.id}" aria-selected="${x === b}">${esc(x.tab)}</button>`).join('')}</div>
+      <div class="series-head">
+        <img alt="" src="${esc(b.cover)}">
+        <div style="min-width:0">
+          <h2>${esc(b.title)}</h2>
+          <p>${b.tracks.length} bölüm · ${human(b.total)}${done ? ` · ${done} dinlendi` : ''}</p>
+          <div class="series-acts"><button class="btn-plan" type="button" id="seriesPlay"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>${r != null ? `Devam et · Bölüm ${b.tracks[r].no}` : 'Dinlemeye başla'}</button><a href="#kitap-${b.id}">Okuma planı ve ayrıntılar</a></div>
+        </div>
+      </div>
+      ${groups.length || b.tracks.length > 20 ? `<div class="series-tools">
+        ${groups.length ? `<select id="seriesGroup" aria-label="Sure seç">${groups.map(g => `<option value="${esc(g)}" ${g === audioGroup[b.key] ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select>` : ''}
+        <label class="search"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 9.5 16a6.5 6.5 0 0 0 4.2-1.6l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg><input id="seriesSearch" type="search" placeholder="Bu seride ara" aria-label="Bu seride ara" autocomplete="off"></label>
+      </div>` : ''}
+      <ol class="list"></ol>`;
+    const tabs = host.querySelector('.subtabs');
+    tabs.scrollLeft = left;
+    tabs.querySelectorAll('[data-series]').forEach(t => t.onclick = () => {
+      audioSel = books[+t.dataset.series].key; store.set('audioTab', audioSel);
+      audioQuery = '';
+      renderAudio();
+      host.querySelector('[aria-selected="true"]').scrollIntoView({ inline: 'center', block: 'nearest' });
+    });
+    host.querySelector('#seriesPlay').onclick = () => { if (cur && cur.b === b.id && cur.t === r) toggle(); else play(b.id, r ?? 0); };
+    const list = host.querySelector('.list');
+    const paint = () => {
+      const q = norm(audioQuery).split(/\s+/).filter(Boolean);
+      const frag = document.createDocumentFragment();
+      b.tracks.forEach((t, j) => {
+        // Arama tüm seride; arama yokken gruplu seride seçili sure
+        if (q.length ? !q.every(w => norm(t.name).includes(w)) : groups.length && t.group !== audioGroup[b.key]) return;
+        frag.appendChild(trackRow(b, t, j));
+      });
+      list.innerHTML = '';
+      list.appendChild(frag);
+      if (!list.children.length) list.innerHTML = '<li class="empty">Bu aramayla eşleşen bölüm yok.</li>';
+    };
+    const search = host.querySelector('#seriesSearch');
+    if (search) {
+      search.value = audioQuery;
+      search.oninput = () => { audioQuery = search.value; paint(); };
+      if (hadFocus) search.focus();
+    }
+    const groupSel = host.querySelector('#seriesGroup');
+    if (groupSel) groupSel.onchange = () => { audioGroup[b.key] = groupSel.value; audioQuery = ''; if (search) search.value = ''; paint(); };
+    paint();
+  }
+
+  $$('[data-has-series]').forEach(x => x.hidden = !seriesBooks.length);
+  $('mainTabs').hidden = !seriesBooks.length;
+
   // ---------- Okuma planı ve bitiş tahmini ----------
   // Tüm süreler "içerik saniyesi"dir (1× hızda). Dinlerken geçen gerçek süre = içerik / hız.
   const dayDiff = (a, b) => Math.round((Date.parse(b + 'T12:00:00') - Date.parse(a + 'T12:00:00')) / 864e5);
@@ -1450,6 +1562,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     const n = Math.min(14, dayDiff(days[0], dayKey()) + 1);
     let wall = 0;
     for (let i = 0; i < n; i++) wall += daySum(addDays(dayKey(), -i));
+    if (wall < 10 * 60) return 0; // birkaç saniyelik dinlemeden anlamlı bir tempo çıkmaz
     return wall / n * (speed || 1);
   }
 
@@ -1508,6 +1621,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     const v = pace();
     if (!v) return { text: pl ? `Plana göre bitiş: ${dateWords(pl.p.end)}.` : 'Bitiş tahmini için birkaç gün dinlemen yeterli.' };
     const days = Math.ceil(rem / v);
+    if (days > 365) return { text: `Günde ortalama ${human(atSpeed(v))} dinlediğine göre bu kitabın bitmesi bir yıldan uzun sürer.` };
     const when = addDays(dayKey(), days - 1);
     let text = `Günde ortalama ${human(atSpeed(v)) || '1 dk'} dinlediğine göre yaklaşık ${days} günde biter (${dateWords(when)}).`;
     if (pl && !pl.overdue) {
@@ -1607,6 +1721,24 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     return { p, dur, pct, text: p?.done ? 'Dinlendi' : pct > 1 ? `${human(Math.max(0, dur - p.pos))} kaldı` : human(dur) };
   }
 
+  // Bölüm satırı: kitap sayfası ve Sesli Yayınlar aynı satırı kullanır
+  function trackRow(b, t, j) {
+    const { p, pct, text } = trackStatus(t);
+    const isCur = cur && cur.b === b.id && cur.t === j;
+    const li = document.createElement('li');
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'row' + (p?.done ? ' done' : '') + (isCur ? ' current' : '');
+    const icon = p?.done && !isCur ? ICON_CHECK : isCur && !audio.paused ? ICON_PAUSE : ICON_PLAY;
+    row.innerHTML = `<span class="no">${t.no}</span>
+      <span class="nm"><span>${esc(t.name)}</span><small class="st-mobile">${text}</small>${pct > 1 ? `<div class="pbar"><i style="width:${pct.toFixed(1)}%"></i></div>` : ''}</span>
+      <span class="dur">${text}</span>
+      <span class="go"><svg viewBox="0 0 24 24">${icon}</svg></span>`;
+    row.onclick = () => (isCur ? toggle() : play(b.id, j));
+    li.appendChild(row);
+    return li;
+  }
+
   function renderList() {
     const b = books[viewBook]; if (!b) return;
     const q = $('search').value.trim().toLocaleLowerCase('tr');
@@ -1614,19 +1746,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     const frag = document.createDocumentFragment();
     b.tracks.forEach((t, j) => {
       if (q && !t.name.toLocaleLowerCase('tr').includes(q) && !t.no.includes(q)) return;
-      const { p, pct, text } = trackStatus(t);
-      const isCur = cur && cur.b === b.id && cur.t === j;
-      const li = document.createElement('li');
-      const row = document.createElement('button');
-      row.type = 'button';
-      row.className = 'row' + (p?.done ? ' done' : '') + (isCur ? ' current' : '');
-      const icon = p?.done && !isCur ? ICON_CHECK : isCur && !audio.paused ? ICON_PAUSE : ICON_PLAY;
-      row.innerHTML = `<span class="no">${t.no}</span>
-        <span class="nm"><span>${esc(t.name)}</span><small class="st-mobile">${text}</small>${pct > 1 ? `<div class="pbar"><i style="width:${pct.toFixed(1)}%"></i></div>` : ''}</span>
-        <span class="dur">${text}</span>
-        <span class="go"><svg viewBox="0 0 24 24">${icon}</svg></span>`;
-      row.onclick = () => (isCur ? toggle() : play(b.id, j));
-      li.appendChild(row); frag.appendChild(li);
+      frag.appendChild(trackRow(b, t, j));
     });
     list.appendChild(frag);
     if (!list.children.length) list.innerHTML = '<li class="empty">Bu aramayla eşleşen konu başlığı yok.</li>';
@@ -1668,6 +1788,8 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     } else if (h === '#istatistik') {
       viewBook = null; show('stats'); renderStats(); nav = 'stats'; window.scrollTo(0, 0);
     } else {
+      homeTab = h === '#sesli' && seriesBooks.length ? 'audio' : 'books';
+      if (homeTab !== 'books') nav = homeTab;
       viewBook = null; show('home'); renderHome();
     }
     $$('[data-nav]').forEach(a => a.classList.toggle('active', a.dataset.nav === nav));
@@ -1802,6 +1924,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     $$('.pi').forEach(s => s.innerHTML = on ? ICON_PAUSE : ICON_PLAY);
     $$('[data-act="play"]').forEach(x => x.setAttribute('aria-label', on ? 'Duraklat' : 'Çal'));
     if (viewBook != null && cur?.b === viewBook) { renderList(); renderPlanCard(books[viewBook]); }
+    if (homeTab === 'audio' && !$('home').hidden) renderAudio();
   }
 
   $$('.seekbar').forEach(s => {

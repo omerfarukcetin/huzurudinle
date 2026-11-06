@@ -2,7 +2,7 @@
 // 1) Uygulama kabuğunu önbelleğe alır: site hızlı ve internet zayıfken de açılır (sesler her zaman internetten gelir).
 // 2) Günlük hatırlatma: tarayıcı destekliyorsa (Android'de yüklü uygulama) arka planda hedef kontrolü yapar.
 // Siteyi güncelleyince aşağıdaki sürümü artırın; eski önbellek silinir.
-const VERSION = 'skr-v3';
+const VERSION = 'skr-v6';
 const SHELL = ['./', 'index.html', 'books.js', 'sync.js', 'firebase-config.js', 'logo.svg', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/favicon-32.png'];
 

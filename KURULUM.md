@@ -52,7 +52,16 @@ http://localhost:8765 adresini açabilirsiniz:
   renkleri/ölçüleri düzenleyip `python logo_olustur.py` çalıştırın.
 - Sayfa, betikler ve kitap listesi her açılışta önce internetten alınır (internet yoksa önbellekten);
   kapaklar ve simgeler önbellekten gelir. Kapak resimlerini değiştirdiyseniz `sw.js` dosyasının başındaki
-  `VERSION = 'skr-v3'` değerini artırın (`skr-v4`…), böylece eski kapaklar silinir.
+  `VERSION = 'skr-v6'` değerini artırın (`skr-v7`…), böylece eski kapaklar silinir.
+
+## Listeleri yenileme ve seri ekleme
+Kaynak sitelerde yeni içerik varsa betikleri **bu sırayla** çalıştırıp `books.js`, `books.json` ve yeni kapakları yükleyin:
+
+1. `linkleri_topla.ps1` (kitaplar ve bölüm adları)
+2. `kapak_ve_sure.py` (kapaklar ve süreler)
+3. `seriler_topla.py` (Sesli Yayınlar serileri)
+
+İlk iki adım listeyi baştan yazar, bu yüzden serileri en son eklemek gerekir. Yeni bir seri eklemek için `seriler_topla.py` içindeki `SERIES` listesine dinimizislam.com sayfa numarasını, sekme adını ve kapak yazısını ekleyip yalnızca bu betiği çalıştırmanız yeterlidir.
 
 ## Günlük hatırlatma — neyin nerede çalıştığı
 | Cihaz | Durum |
