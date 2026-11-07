@@ -629,8 +629,35 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
 .card h3 .count { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); margin-left: 6px; }
 .drow { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
 .drow:last-child { border-bottom: 0; }
-.drow.day { padding: 6px 0; }
-.day-more summary { cursor: pointer; font-size: var(--fs-sm); font-weight: 700; color: var(--muted); padding: 10px 0 4px; }
+#cal { scroll-margin-top: 72px; }
+.cal-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.cal-h h3 { margin: 0; }
+.cal-nav { display: flex; align-items: center; gap: 4px; }
+.cal-nav strong { min-width: 112px; text-align: center; font-size: var(--fs-sm); }
+.cal-nav button { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; }
+.cal-nav button:hover:not(:disabled) { background: var(--surface-2); }
+.cal-nav button:disabled { opacity: .3; cursor: default; }
+.cal-nav svg { width: 20px; height: 20px; fill: currentColor; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-grid .wd { font-size: var(--fs-xs); color: var(--muted); text-align: center; font-weight: 600; padding-bottom: 2px; }
+.cal-day { position: relative; aspect-ratio: 1; max-height: 52px; border-radius: 10px; display: grid; place-items: center; font-size: var(--fs-sm); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--fg); background: var(--surface-2); }
+.cal-day.l1 { background: color-mix(in srgb, var(--accent) 18%, var(--surface-2)); }
+.cal-day.l2 { background: color-mix(in srgb, var(--accent) 38%, var(--surface-2)); }
+.cal-day.l3 { background: color-mix(in srgb, var(--accent) 62%, var(--surface-2)); color: var(--accent-fg); }
+.cal-day.l4 { background: var(--accent); color: var(--accent-fg); }
+.cal-day.goal::after { content: ''; position: absolute; bottom: 5px; width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.cal-day.today { outline: 2px solid var(--fg); outline-offset: -2px; }
+.cal-day.empty { background: transparent; }
+.cal-day.future { opacity: .35; }
+button.cal-day:hover { filter: brightness(.95); }
+.cal-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: var(--fs-xs); color: var(--muted); }
+.cal-legend { display: flex; align-items: center; gap: 4px; }
+.cal-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.day-books { display: flex; flex-direction: column; margin: 4px 0 0; }
+.day-books div { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
+.day-books img { height: 36px; width: auto; margin: 0 auto; }
+.day-books span { overflow-wrap: anywhere; }
+.day-books b { font-variant-numeric: tabular-nums; }
 .drow.end { display: flex; justify-content: flex-end; padding-top: 12px; }
 .drow img { height: 42px; width: auto; margin: 0 auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,.2)); }
 .drow strong { display: block; font-size: var(--fs-sm); font-weight: 600; overflow-wrap: anywhere; }
@@ -1035,7 +1062,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   // epoch: "şu andan önceki kayıtları sil" zamanları (silme işlemi senkronla diğer cihazlara da geçsin diye)
   // plans[kitap] = {start, end (YYYY-AA-GG), base: plan başında dinlenmiş içerik sn, snap: {day, listened}, at, deleted?}
   // rounds[kitap]: dinleyişler (aşağıda "Dinleyişler" bölümünde)
-  const DEF = () => ({ v: 2, progress: {}, bookmarks: {}, daily: {}, plans: {}, rounds: {}, dayDel: {}, last: null, lastByBook: {}, recent: [], speed: 1, goal: 15, updatedAt: 0, epoch: { progress: 0, bookmarks: 0, daily: 0, plans: 0, rounds: 0 } });
+  const DEF = () => ({ v: 2, progress: {}, bookmarks: {}, daily: {}, plans: {}, rounds: {}, dayDel: {}, dayBooks: {}, last: null, lastByBook: {}, recent: [], speed: 1, goal: 15, updatedAt: 0, epoch: { progress: 0, bookmarks: 0, daily: 0, plans: 0, rounds: 0 } });
   let state = loadState();
   const DEVICE = store.get('device', null) || (() => { const id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); store.set('device', id); return id; })();
 
@@ -1071,7 +1098,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     }
     // Silinmiş günlerin eski sayaçları (dinleme geçmişi ve dinleyiş süreleri)
     const dropDead = by => { for (const v of Object.values(by || {})) if (v && typeof v === 'object') for (const s of Object.keys(v)) if (!liveBucket(s)) delete v[s]; };
-    dropDead(state.daily);
+    dropDead(state.daily); dropDead(state.dayBooks);
     for (const r of Object.values(state.rounds)) { dropDead(r.cur?.sec); for (const h of Object.values(r.hist || {})) dropDead(h.secBy); }
   }
   // Silme işlemleri beklemeden hesaba yazılır
@@ -1183,10 +1210,19 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   const daySum = k => Object.values(state.daily || {}).reduce((n, dev) => n + (dev[bucket(k)] || 0), 0);
   // Kaydı olan günler (YYYY-AA-GG)
   const listenDays = () => [...new Set(Object.values(state.daily || {}).flatMap(Object.keys).filter(liveBucket).map(s => s.split('~')[0]))].filter(k => daySum(k) > 0);
+  // Bir günde hangi kitaptan ne kadar dinlendi: {kitap anahtarı: sn} (tüm cihazlar toplanır)
+  const dayBooks = k => {
+    const out = {};
+    for (const dev of Object.values(state.dayBooks || {})) for (const [bk, s] of Object.entries(dev[bucket(k)] || {})) out[bk] = (out[bk] || 0) + s;
+    return out;
+  };
+  const dayName = k => k === dayKey() ? 'Bugün' : k === addDays(dayKey(), -1) ? 'Dün' : new Date(k + 'T12:00:00').toLocaleDateString('tr', { weekday: 'long', day: 'numeric', month: 'long', ...(k.slice(0, 4) !== dayKey().slice(0, 4) ? { year: 'numeric' } : {}) });
+  const dayLen = s => s < 60 ? `${Math.round(s)} sn` : human(s);
   function addListen(sec) {
     const d = (state.daily[DEVICE] ||= {});
     const k = bucket();
     d[k] = Math.round(((d[k] || 0) + sec) * 10) / 10;
+    if (cur) { const m = ((state.dayBooks[DEVICE] ||= {})[k] ||= {}), bk = books[cur.b].key; m[bk] = Math.round(((m[bk] || 0) + sec) * 10) / 10; }
     // Dinleyişin süresi: her cihaz kendi payını gün gün tutar (birleştirmede büyük olan kalır; gün silinince düşer)
     const c = cur && ensureRound(books[cur.b]);
     if (c) { const m = devSec(c, DEVICE); m[k] = Math.round(((m[k] || 0) + sec) * 10) / 10; }
@@ -1352,6 +1388,60 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     while (daySum(dayKey(d)) >= 60) { n++; d.setDate(d.getDate() - 1); }
     return n;
   }
+  // ---------- Takvim: ay ay dinleme günleri; güne dokununca ayrıntı ve silme ----------
+  let calMonth = null; // YYYY-AA
+  const monthShift = (m, n) => { const d = new Date(m + '-01T12:00:00'); d.setMonth(d.getMonth() + n); return dayKey(d).slice(0, 7); };
+  function calendarHTML(goal) {
+    const thisMonth = dayKey().slice(0, 7), today = dayKey();
+    const all = listenDays().sort();
+    const first = (all[0] || today).slice(0, 7);
+    if (!calMonth || calMonth > thisMonth) calMonth = thisMonth;
+    if (calMonth < first) calMonth = first;
+    const start = new Date(calMonth + '-01T12:00:00');
+    const lead = (start.getDay() + 6) % 7; // Pazartesi ilk gün
+    const n = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
+    const g = goal * 60;
+    // Renk: hedefin yarısından az, hedefe kadar, hedef, iki katı
+    const level = s => !s ? 0 : s < g / 2 ? 1 : s < g ? 2 : s < g * 2 ? 3 : 4;
+    let cells = '', mDays = 0, mSec = 0;
+    for (let i = 0; i < lead; i++) cells += '<span class="cal-day empty"></span>';
+    for (let d = 1; d <= n; d++) {
+      const k = `${calMonth}-${String(d).padStart(2, '0')}`, s = k <= today ? daySum(k) : 0;
+      if (s >= 1) { mDays++; mSec += s; }
+      const cls = `cal-day l${level(s)}${s >= g ? ' goal' : ''}${k === today ? ' today' : ''}${k > today ? ' future' : ''}`;
+      const label = `${dayName(k)}: ${s >= 1 ? dayLen(s) : 'dinleme yok'}`;
+      cells += s >= 1 ? `<button type="button" class="${cls}" data-day="${k}" title="${esc(label)}" aria-label="${esc(label)}">${d}</button>` : `<span class="${cls}" title="${esc(label)}">${d}</span>`;
+    }
+    const sw = l => `<i class="cal-day l${l}" style="aspect-ratio:auto"></i>`;
+    return `<div class="card" id="cal">
+      <div class="cal-h"><h3>Takvim</h3><div class="cal-nav">
+        <button type="button" data-cal="${monthShift(calMonth, -1)}" aria-label="Önceki ay" ${calMonth <= first ? 'disabled' : ''}>${ICON_CHEV_L}</button>
+        <strong>${start.toLocaleDateString('tr', { month: 'long', year: 'numeric' })}</strong>
+        <button type="button" data-cal="${monthShift(calMonth, 1)}" aria-label="Sonraki ay" ${calMonth >= thisMonth ? 'disabled' : ''}>${ICON_CHEV_R}</button>
+      </div></div>
+      <div class="cal-grid">${['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(w => `<span class="wd">${w}</span>`).join('')}${cells}</div>
+      <div class="cal-foot"><span>${mDays ? `Bu ay ${mDays} gün · ${dayLen(mSec)}` : 'Bu ay dinleme yok'} · Ayrıntı ve silme için bir güne dokun</span>
+        <span class="cal-legend">Az ${[1, 2, 3, 4].map(sw).join('')} Çok</span></div>
+    </div>`;
+  }
+  function openDay(k) {
+    const s = daySum(k), goal = state.goal || 15;
+    const per = Object.entries(dayBooks(k)).map(([bk, sec]) => ({ b: bookByKey(bk), sec })).filter(x => x.b && x.sec >= 1).sort((x, y) => y.sec - x.sec);
+    const known = per.reduce((n, x) => n + x.sec, 0);
+    openPop(`<div class="pop-h"><h4>${esc(dayName(k))}</h4><button class="x" type="button" data-close aria-label="Kapat">${ICON_X}</button></div>
+      <p class="note" style="margin:0 0 6px"><b>${dayLen(s)}</b> dinlendi · ${s >= goal * 60 ? 'günlük hedef tutturuldu' : `günlük hedef ${goal} dk`}</p>
+      ${per.length ? `<div class="day-books">${per.map(x => `<div><img alt="" src="${esc(x.b.cover)}"><span>${esc(x.b.title)}</span><b>${dayLen(x.sec)}</b></div>`).join('')}</div>` : ''}
+      ${s - known >= 60 ? `<p class="note" style="margin:8px 0 0">${per.length ? `${dayLen(s - known)} için` : 'Bu gün için'} kitap ayrıntısı yok (takvimden önceki kayıt).</p>` : ''}
+      <div class="btn-grid"><button class="btn2" type="button" data-close>Kapat</button><button class="btn2 danger" type="button" id="dayDel">Bu günün kaydını sil</button></div>`, {
+      dark: false,
+      onMount(card) {
+        card.querySelector('#dayDel').onclick = () => confirmPop('Bu günün kaydını sil', `<b>${esc(dayName(k))}</b> dinlenen ${dayLen(s)} silinecek. Günlük hedef, seri, toplam süre ve o günü kapsayan dinleyişlerin süresi buna göre düzelir. Bölümlerde kaldığın yer değişmez; gerekirse çalarda konumu geri sürükleyebilirsin.`, 'Sil', () => {
+          deleteDay(k); toast(`${dayName(k)}: kayıt silindi`); renderStats();
+        });
+      }
+    });
+  }
+
   function renderStats() {
     const goal = state.goal || 15;
     const today = daySum(dayKey());
@@ -1395,6 +1485,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
           <p class="status">O saate kadar hedefini doldurmadıysan bildirim gelir.</p>
         </div>
       </div>
+      ${calendarHTML(goal)}
       ${finished.length ? `<div class="card">
         <h3>Bitirdiklerin</h3>
         <p class="status" style="margin:0 0 6px">${finBooks.length ? `${finBooks.length} kitabı toplam ${finBooks.reduce((n, b) => n + finishCount(b), 0)} kez bitirdin.` : ''}${tefsir && finishCount(tefsir) ? ` Kur'an-ı Kerim Tefsiri: ${finishCount(tefsir)} hatim.` : ''}</p>
@@ -1411,6 +1502,8 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
         <br><a class="linkbtn" href="#verilerim">Verilerimi yönet ve sil</a></p>`;
 
     $('statsBody').querySelectorAll('[data-book]').forEach(x => x.onclick = () => go(`#kitap-${x.dataset.book}`));
+    $('statsBody').querySelectorAll('[data-cal]').forEach(x => x.onclick = () => { calMonth = x.dataset.cal; renderStats(); });
+    $('statsBody').querySelectorAll('[data-day]').forEach(x => x.onclick = () => openDay(x.dataset.day));
     $('statsBody').querySelectorAll('[data-goal]').forEach(x => x.onclick = () => { state.goal = +x.dataset.goal; persist(true); reminderSync(); renderStats(); });
     $('remOn').onchange = e => setReminder(e.target.checked);
     $('remHour').onchange = e => { saveReminder({ ...reminder(), hour: +e.target.value }); reminderSync(); };
@@ -1451,12 +1544,12 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     saveNow();
   }
   function deleteAllBookmarks() { state.epoch.bookmarks = Date.now(); state.bookmarks = {}; saveNow(); toast('Tüm yer imleri silindi'); }
-  function clearHistory() { state.epoch.daily = Date.now(); state.daily = {}; saveNow(); toast('Dinleme geçmişi silindi'); }
+  function clearHistory() { state.epoch.daily = Date.now(); state.daily = {}; state.dayBooks = {}; saveNow(); toast('Dinleme geçmişi silindi'); }
   function clearAll() {
     const now = Date.now();
     stopIfIn(null);
     state.epoch = { progress: now, bookmarks: now, daily: now, plans: now, rounds: now };
-    Object.assign(state, { progress: {}, bookmarks: {}, daily: {}, plans: {}, rounds: {}, last: null, lastByBook: {}, recent: [] });
+    Object.assign(state, { progress: {}, bookmarks: {}, daily: {}, dayBooks: {}, plans: {}, rounds: {}, last: null, lastByBook: {}, recent: [] });
     saveNow();
     toast('Tüm dinleme verilerin silindi');
   }
@@ -1467,10 +1560,6 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
       .map(([id, m]) => ({ id, ...m, ...byKey.get(m.k) })).sort((x, y) => y.at - x.at);
     const days = new Set(listenDays());
     const total = [...days].reduce((n, k) => n + daySum(k), 0);
-    const dayList = [...days].sort().reverse();
-    const dayName = k => k === dayKey() ? 'Bugün' : k === addDays(dayKey(), -1) ? 'Dün' : new Date(k + 'T12:00:00').toLocaleDateString('tr', { weekday: 'long', day: 'numeric', month: 'long', ...(k.slice(0, 4) !== dayKey().slice(0, 4) ? { year: 'numeric' } : {}) });
-    const dayLen = s => s < 60 ? `${Math.round(s)} sn` : human(s);
-    const dayRow = k => `<div class="drow day"><span style="min-width:0;grid-column:1/3"><strong>${esc(dayName(k))}</strong><small>${dayLen(daySum(k))} dinlendi</small></span><button class="dbtn icon" type="button" data-delday="${k}" aria-label="${esc(dayName(k))} kaydını sil">${ICON_X}</button></div>`;
     const plans = books.filter(b => activePlan(b));
     const rounded = books.filter(b => countsRounds(b) && finishCount(b));
     const nothing = !started.length && !marks.length && !days.size && !plans.length && !rounded.length;
@@ -1506,9 +1595,8 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
 
       <div class="card">
         <h3>Dinleme geçmişi</h3>
-        ${days.size ? `<div class="drow"><span style="min-width:0;grid-column:1/3"><strong>${days.size} günlük kayıt · toplam ${human(total) || Math.round(total) + ' sn'}</strong><small>İstatistiklerdeki günlük süreler ve seri bu kayıttan hesaplanır. Yanlışlıkla dinlediğin bir günü aşağıdan tek başına silebilirsin.</small></span><button class="dbtn" type="button" id="delHistory">Geçmişi sil</button></div>
-          ${dayList.slice(0, 7).map(dayRow).join('')}
-          ${dayList.length > 7 ? `<details class="day-more"><summary>Daha eski ${dayList.length - 7} gün</summary>${dayList.slice(7).map(dayRow).join('')}</details>` : ''}`
+        ${days.size ? `<div class="drow"><span style="min-width:0;grid-column:1/3"><strong>${days.size} günlük kayıt · toplam ${human(total) || Math.round(total) + ' sn'}</strong><small>İstatistiklerdeki günlük süreler ve seri bu kayıttan hesaplanır.</small></span><button class="dbtn" type="button" id="delHistory">Geçmişi sil</button></div>
+          <div class="drow end" style="justify-content:flex-start;align-items:center;gap:10px;flex-wrap:wrap"><button class="linkbtn" type="button" id="toCal">Takvimde gün seç ve sil</button><small style="color:var(--muted)">Yanlışlıkla dinlediğin bir günü tek başına silebilirsin.</small></div>`
           : '<p class="empty-card">Dinleme geçmişi yok.</p>'}
       </div>
 
@@ -1529,12 +1617,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
       const b = books[+x.dataset.reset];
       confirmPop('İlerlemeyi sıfırla', `<b>${esc(b.title)}</b> kitabındaki dinlenen bölümler ve kaldığın yer silinecek. Yer imlerin kalır.`, 'Sıfırla', () => { resetBook(b.id); renderData(); });
     });
-    body.querySelectorAll('[data-delday]').forEach(x => x.onclick = () => {
-      const k = x.dataset.delday;
-      confirmPop('Bu günün kaydını sil', `<b>${esc(dayName(k))}</b> dinlenen ${dayLen(daySum(k))} silinecek. Günlük hedef, seri, toplam süre ve o günü kapsayan dinleyişlerin süresi buna göre düzelir. Bölümlerde kaldığın yer değişmez; gerekirse çalarda konumu geri sürükleyebilirsin.`, 'Sil', () => {
-        deleteDay(k); toast(`${dayName(k)}: kayıt silindi`); renderData();
-      });
-    });
+    body.querySelector('#toCal')?.addEventListener('click', () => { calMonth = dayKey().slice(0, 7); go('#istatistik'); setTimeout(() => $('cal')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 80); });
     body.querySelectorAll('[data-delrounds]').forEach(x => x.onclick = () => {
       const b = books[+x.dataset.delrounds];
       confirmPop('Dinleyiş geçmişini sil', `<b>${esc(b.title)}</b> için ${finishCount(b)} bitmiş ${roundWord(b)} kaydı silinecek. Kitaptaki bölüm işaretlerin ve kaldığın yer kalır.`, 'Sil', () => {
@@ -2532,11 +2615,16 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
       }
       // Dinleme süreleri: her cihazın her günü için büyük olan (sayaçlar yalnızca artar);
       // geçmiş başka cihazda silinmişse buradaki eski sayaçlar da silinir
-      if ((re.daily || 0) > (le.daily || 0)) state.daily = {};
+      if ((re.daily || 0) > (le.daily || 0)) { state.daily = {}; state.dayBooks = {}; }
       if ((re.daily || 0) >= (le.daily || 0)) {
         for (const [dev, days] of Object.entries(r.daily || {})) {
           const l = (state.daily[dev] ||= {});
           for (const [k, s] of Object.entries(days)) if (s > (l[k] || 0)) l[k] = s;
+        }
+        // Gün gün kitap süreleri de aynı kuralla: cihaz, gün ve kitap başına büyük olan
+        for (const [dev, days] of Object.entries(r.dayBooks || {})) {
+          const l = (state.dayBooks[dev] ||= {});
+          for (const [k, bs] of Object.entries(days)) { const m = (l[k] ||= {}); for (const [bk, s] of Object.entries(bs || {})) if (s > (m[bk] || 0)) m[bk] = s; }
         }
       }
       for (const k of Object.keys(re)) le[k] = ep(k);
