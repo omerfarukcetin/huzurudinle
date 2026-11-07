@@ -340,6 +340,14 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px;
 input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border: 0; border-radius: 50%; background: var(--pl-thumb); }
 
 .jumps { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.vol { display: grid; grid-template-columns: 36px minmax(0, 1fr) 30px; align-items: center; gap: 8px; width: min(100%, 340px); margin: 10px auto 0; }
+.vol[hidden] { display: none; }
+.vol-btn { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--pl-fg); }
+.vol-btn:hover { background: var(--pl-hover); }
+.vol-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.vol-btn .vx, .vol.off .vol-btn .vw { display: none; }
+.vol.off .vol-btn .vx { display: inline; }
+.vol output { font-size: var(--fs-xs); font-weight: 600; color: var(--pl-muted); text-align: right; font-variant-numeric: tabular-nums; }
 .jump { padding: 6px 12px; border-radius: 999px; background: var(--pl-chip); font-size: var(--fs-xs); font-weight: 700; color: var(--pl-fg); font-variant-numeric: tabular-nums; }
 .jump:hover { background: var(--pl-chip-hover); }
 .jump:active { transform: scale(.95); }
@@ -923,6 +931,12 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
           <button class="jump" data-skip="-30" type="button" aria-label="30 saniye geri">−30 sn</button>
           <button class="jump" data-skip="30" type="button" aria-label="30 saniye ileri">+30 sn</button>
           <button class="jump" data-skip="60" type="button" aria-label="1 dakika ileri">+1 dk</button>
+        </div>
+
+        <div class="vol" id="volRow">
+          <button class="vol-btn" type="button" id="muteBtn" aria-label="Sesi kapat"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="vw" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/><path class="vx" d="m15.5 9.5 5 5m0-5-5 5"/></svg></button>
+          <input type="range" id="vol" min="0" max="1" step="0.05" value="1" aria-label="Ses düzeyi">
+          <output id="volOut">100</output>
         </div>
 
         <div class="tools">
@@ -1815,7 +1829,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     const pos = startAt ?? (p && !p.done ? p.pos : 0);
     audio.addEventListener('loadedmetadata', () => { if (pos > 0) audio.currentTime = pos; audio.playbackRate = speed; }, { once: true });
     audio.playbackRate = speed;
-    audio.volume = 1;
+    audio.volume = vol;
     audio.play().catch(() => {});
     showNow();
     if (viewBook === bi) renderDetail();
@@ -1935,16 +1949,45 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     });
   });
 
+  // ---------- Ses düzeyi (cihaza özel, hesapla eşitlenmez) ----------
+  let vol = 1;
+  try { const v = parseFloat(localStorage.getItem('skr:vol')); if (v >= 0 && v <= 1) vol = v; } catch {}
+  try { audio.muted = localStorage.getItem('skr:mute') === '1'; } catch {}
+  function paintVol() {
+    const on = !audio.muted && vol > 0, r = $('vol');
+    r.value = vol; r.style.setProperty('--p', (audio.muted ? 0 : vol * 100) + '%');
+    $('volOut').textContent = audio.muted ? '0' : Math.round(vol * 100);
+    $('volRow').classList.toggle('off', !on);
+    $('muteBtn').setAttribute('aria-label', on ? 'Sesi kapat' : 'Sesi aç');
+  }
+  function setVol(v) {
+    vol = Math.min(1, Math.max(0, Math.round(v * 100) / 100));
+    if (!sleepTick || sleepEnd - Date.now() >= 8000) audio.volume = vol;
+    if (vol > 0) audio.muted = false;
+    try { localStorage.setItem('skr:vol', vol); localStorage.setItem('skr:mute', audio.muted ? '1' : '0'); } catch {}
+    paintVol();
+  }
+  $('vol').oninput = e => setVol(+e.target.value);
+  $('muteBtn').onclick = () => {
+    if (!audio.muted && vol === 0) return setVol(1);
+    audio.muted = !audio.muted;
+    try { localStorage.setItem('skr:mute', audio.muted ? '1' : '0'); } catch {}
+    paintVol();
+  };
+  // iPhone/iPad'de ses düzeyi yalnızca cihaz tuşlarıyla değişir; orada kaydırıcı gizlenir
+  { const t = new Audio(); t.volume = 0.5; if (t.volume !== 0.5) $('volRow').hidden = true; }
+  audio.volume = vol; paintVol();
+
   // ---------- Uyku zamanlayıcısı ----------
   let sleep = 0, sleepEnd = 0, sleepTick = null;
   function setSleep(v) {
-    sleep = v; clearInterval(sleepTick); audio.volume = 1;
+    sleep = v; clearInterval(sleepTick); audio.volume = vol;
     if (typeof v === 'number' && v > 0) {
       sleepEnd = Date.now() + v * 60000;
       sleepTick = setInterval(() => {
         const left = sleepEnd - Date.now();
-        if (left <= 0) { audio.pause(); audio.volume = 1; setSleep(0); toast('Uyku zamanlayıcısı: duraklatıldı'); return; }
-        if (left < 8000) audio.volume = Math.max(0.05, left / 8000); // son saniyelerde sesi kıs
+        if (left <= 0) { audio.pause(); audio.volume = vol; setSleep(0); toast('Uyku zamanlayıcısı: duraklatıldı'); return; }
+        if (left < 8000) audio.volume = vol * Math.max(0.05, left / 8000); // son saniyelerde sesi kıs
         paintSleep();
       }, 1000);
     }
@@ -2155,7 +2198,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
         <button class="gbtn" type="button" id="gIn">${GOOGLE_G}Google ile devam et</button>
         <div class="or">veya e-posta ile</div>
         <form id="emailForm" novalidate>
-          ${isUp ? '<div class="field"><label for="aName">Adın</label><input id="aName" autocomplete="name" placeholder="Adın Soyadın"></div>' : ''}
+          ${isUp ? '<div class="field"><label for="aName">Adınız soyadınız</label><input id="aName" autocomplete="name" placeholder="Adınız Soyadınız"></div>' : ''}
           <div class="field"><label for="aEmail">E-posta</label><input id="aEmail" type="email" inputmode="email" autocomplete="email" placeholder="ornek@eposta.com" required></div>
           <div class="field"><label for="aPass">Şifre</label><input id="aPass" type="password" autocomplete="${isUp ? 'new-password' : 'current-password'}" placeholder="${isUp ? 'En az 6 karakter' : 'Şifren'}" required minlength="6"></div>
           <button class="pbtn" type="submit" id="aSubmit">${isUp ? 'Hesap oluştur' : 'Giriş yap'}</button>
