@@ -571,6 +571,21 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
 /* ---------- Okuma planı ---------- */
 .plan { width: 100%; text-align: left; margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
 .plan:empty { display: none; }
+.rounds { width: 100%; text-align: left; margin-top: 14px; }
+.rounds:empty { display: none; }
+.round-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.round-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.round-h strong { font-size: var(--fs-base); }
+.round-h span { font-size: var(--fs-sm); color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+.round-card .btn-plan { align-self: flex-start; }
+.round-mark { text-align: left; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--line); font-weight: 700; font-size: var(--fs-sm); color: var(--accent); }
+.round-mark small { display: block; color: var(--muted); font-weight: 500; margin-top: 2px; }
+.round-hist summary { cursor: pointer; font-size: var(--fs-sm); font-weight: 700; color: var(--muted); padding: 2px 0; }
+.round-hist ol { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.round-hist li { font-size: var(--fs-sm); line-height: 1.4; padding-top: 8px; border-top: 1px solid var(--line); }
+.round-hist li b { display: block; }
+.round-hist li span { color: var(--muted); }
+.tile .rnd { position: absolute; top: 8px; right: 8px; min-width: 26px; height: 26px; padding: 0 7px; border-radius: 999px; background: var(--accent); color: var(--accent-fg); font-size: var(--fs-xs); font-weight: 800; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); font-variant-numeric: tabular-nums; }
 .plan-start { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 12px; align-items: start; width: 100%; padding: 12px 14px; border-radius: 14px; border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--line)); background: var(--surface); text-align: left; }
 .plan-start:hover { border-style: solid; }
 .plan-start svg { width: 22px; height: 22px; fill: var(--accent); margin-top: 1px; }
@@ -614,6 +629,8 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
 .card h3 .count { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); margin-left: 6px; }
 .drow { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line); }
 .drow:last-child { border-bottom: 0; }
+.drow.day { padding: 6px 0; }
+.day-more summary { cursor: pointer; font-size: var(--fs-sm); font-weight: 700; color: var(--muted); padding: 10px 0 4px; }
 .drow.end { display: flex; justify-content: flex-end; padding-top: 12px; }
 .drow img { height: 42px; width: auto; margin: 0 auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,.2)); }
 .drow strong { display: block; font-size: var(--fs-sm); font-weight: 600; overflow-wrap: anywhere; }
@@ -847,6 +864,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
           <p class="sub" id="dSub"></p>
           <div class="meta" id="dMeta"></div>
           <button class="cta" id="dPlay" type="button"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span>Dinlemeye başla</span></button>
+          <div class="rounds" id="dRounds"></div>
           <div class="plan" id="dPlan"></div>
         </div>
         <div class="d-list">
@@ -1016,7 +1034,8 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   // last / lastByBook / recent / speed / goal: updatedAt'ı yeni olan taraf kazanır
   // epoch: "şu andan önceki kayıtları sil" zamanları (silme işlemi senkronla diğer cihazlara da geçsin diye)
   // plans[kitap] = {start, end (YYYY-AA-GG), base: plan başında dinlenmiş içerik sn, snap: {day, listened}, at, deleted?}
-  const DEF = () => ({ v: 2, progress: {}, bookmarks: {}, daily: {}, plans: {}, last: null, lastByBook: {}, recent: [], speed: 1, goal: 15, updatedAt: 0, epoch: { progress: 0, bookmarks: 0, daily: 0, plans: 0 } });
+  // rounds[kitap]: dinleyişler (aşağıda "Dinleyişler" bölümünde)
+  const DEF = () => ({ v: 2, progress: {}, bookmarks: {}, daily: {}, plans: {}, rounds: {}, dayDel: {}, last: null, lastByBook: {}, recent: [], speed: 1, goal: 15, updatedAt: 0, epoch: { progress: 0, bookmarks: 0, daily: 0, plans: 0, rounds: 0 } });
   let state = loadState();
   const DEVICE = store.get('device', null) || (() => { const id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); store.set('device', id); return id; })();
 
@@ -1045,6 +1064,15 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     for (const [k, v] of Object.entries(state.progress)) if ((v.at || 0) < e.progress) delete state.progress[k];
     for (const [k, v] of Object.entries(state.bookmarks)) if ((v.at || 0) < e.bookmarks) delete state.bookmarks[k];
     for (const [k, v] of Object.entries(state.plans)) if ((v.at || 0) < e.plans) delete state.plans[k];
+    for (const [k, r] of Object.entries(state.rounds)) {
+      for (const [n, h] of Object.entries(r.hist || {})) if ((h.at || 0) < e.rounds) delete r.hist[n];
+      if ((r.at || 0) < e.rounds) r.cur = null;
+      if (!r.cur && !Object.keys(r.hist || {}).length) delete state.rounds[k];
+    }
+    // Silinmiş günlerin eski sayaçları (dinleme geçmişi ve dinleyiş süreleri)
+    const dropDead = by => { for (const v of Object.values(by || {})) if (v && typeof v === 'object') for (const s of Object.keys(v)) if (!liveBucket(s)) delete v[s]; };
+    dropDead(state.daily);
+    for (const r of Object.values(state.rounds)) { dropDead(r.cur?.sec); for (const h of Object.values(r.hist || {})) dropDead(h.secBy); }
   }
   // Silme işlemleri beklemeden hesaba yazılır
   const saveNow = () => { persist(true); window.skrSync?.flush(); };
@@ -1081,13 +1109,91 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   const bookPct = b => b.total ? Math.min(100, listened(b) / b.total * 100) : 0;
   const lastInBook = bi => { const k = state.lastByBook[books[bi]?.key]; const r = k && byKey.get(k); return r && r.b === bi ? r.t : null; };
 
+  // ---------- Dinleyişler: bir kitabın her baştan sona dinlenişi ayrı kaydedilir ----------
+  // rounds[kitap] = { cur: {n, start, sec: {cihaz: sn}, partial?} | null, at, hist: {n: {start, end, sec, manual?, plan?, at, deleted?}} }
+  // cur yoksa ve hist doluysa kitap "bitti" durumundadır; yeni dinleyiş kullanıcının onayıyla başlar
+  const TEFSIR_KEY = 'seri-4443';
+  const countsRounds = b => b && (b.section !== 'seri' || b.key === TEFSIR_KEY); // ilahi, şiir, marş sayılmaz
+  const roundWord = b => b.key === TEFSIR_KEY ? 'hatim' : 'dinleyiş';
+  const roundRec = b => state.rounds[b.key];
+  const pastRounds = b => Object.entries(roundRec(b)?.hist || {}).filter(([, h]) => !h.deleted).map(([n, h]) => ({ ...h, n: +n })).sort((x, y) => x.n - y.n);
+  const finishCount = b => pastRounds(b).length;
+  const isFinished = b => { const r = roundRec(b); return !!r && !r.cur && finishCount(b) > 0; };
+  const roundNo = b => roundRec(b)?.cur?.n || finishCount(b) + 1;
+  // sec: {cihaz: {gün: sn}} (ilk sürümde {cihaz: sn} idi; o sayı günü bilinmeyen pay olarak "_" altında tutulur)
+  const devSec = (c, dev) => { const v = c.sec[dev]; if (typeof v !== 'object' || !v) c.sec[dev] = v ? { _: v } : {}; return c.sec[dev]; };
+  const secOf = by => Object.values(by || {}).reduce((n, v) => n + (typeof v === 'number' ? v : Object.entries(v || {}).reduce((m, [k, s]) => m + (liveBucket(k) ? s : 0), 0)), 0);
+  const roundSec = c => secOf(c?.sec);
+  const histSec = h => h.secBy ? Math.round(secOf(h.secBy)) : h.sec;
+  const progAts = b => b.tracks.map(t => prog(t)?.at).filter(Boolean);
+  // Bu dinleyişte başlanan kitap: yeni kayıt açılır; eskiden başlanmışsa süre ve hız eksik kalacağı için işaretlenir
+  function ensureRound(b) {
+    if (!countsRounds(b) || isFinished(b)) return null;
+    const r = (state.rounds[b.key] ||= { cur: null, at: 0, hist: {} });
+    if (!r.cur) {
+      const ats = progAts(b);
+      r.cur = { n: finishCount(b) + 1, start: ats.length ? Math.min(...ats) : Date.now(), sec: {}, partial: ats.length ? true : undefined };
+      r.at = Date.now();
+    }
+    return r.cur;
+  }
+  function closeRound(b, manual) {
+    const now = Date.now(), legacy = !roundRec(b);
+    const r = (state.rounds[b.key] ||= { cur: null, at: 0, hist: {} });
+    const ats = progAts(b);
+    const c = r.cur || { n: finishCount(b) + 1, start: ats.length ? Math.min(...ats) : now, sec: {}, partial: true };
+    const pl = activePlan(b);
+    // Eski sürümde bitmiş kitap: bitiş günü olarak son dinlenen bölümün tarihi alınır
+    const end = legacy && ats.length ? Math.max(...ats) : now;
+    // secBy: gün gün süreler saklanır ki sonradan bir gün silinince bitmiş dinleyişin süresi de düzelsin
+    r.hist[c.n] = { start: c.start, end, sec: c.partial ? null : Math.round(roundSec(c)), secBy: c.partial ? undefined : c.sec, manual: manual || undefined,
+      plan: pl ? { start: pl.start, end: pl.end, late: Math.max(0, dayDiff(pl.end, dayKey(new Date(end)))) } : undefined, at: now };
+    r.cur = null; r.at = now;
+    return { n: c.n, legacy, h: r.hist[c.n] };
+  }
+  // Bütün bölümleri dinlenmiş kitapları kapat (çalarken, açılışta ve hesapla birleştirince)
+  function checkRounds(celebrateBook) {
+    let changed = false;
+    for (const b of books) {
+      // İşaretler bu dinleyiş başladıktan sonra konmuş olmalı (önceki dinleyişten kalan işaretler sayılmaz)
+      const since = roundRec(b)?.cur?.start || 0;
+      if (!countsRounds(b) || isFinished(b) || !b.tracks.every(t => prog(t)?.done && (prog(t).at || 0) >= since)) continue;
+      const res = closeRound(b, false); changed = true;
+      if (b === celebrateBook && !res.legacy) setTimeout(() => celebrate(b, res), 400);
+    }
+    if (changed) saveNow();
+  }
+  function startRound(b) {
+    const now = Date.now(), r = (state.rounds[b.key] ||= { cur: null, at: 0, hist: {} });
+    r.cur = { n: finishCount(b) + 1, start: now, sec: {} }; r.at = now;
+    // Bölüm işaretleri yeni dinleyiş için temizlenir; eski dinleyişin özeti geçmişte kalır
+    b.tracks.forEach(t => { if (state.progress[t.key]) state.progress[t.key] = { pos: 0, dur: state.progress[t.key].dur || t.dur || 0, done: false, at: now }; });
+    if (state.plans[b.key]) state.plans[b.key] = { deleted: true, at: now };
+    delete state.lastByBook[b.key];
+    saveNow();
+    return r.cur.n;
+  }
+
   // ---------- Dinleme süresi (istatistikler için) ----------
   const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const daySum = k => Object.values(state.daily || {}).reduce((n, dev) => n + (dev[k] || 0), 0);
+  // Tek gün silme: dayDel[gün] = silme zamanı. Sayaçlar yalnızca artıp birleştirmede büyük olan kaldığı için
+  // silinen günün eski sayacı geri gelmesin diye, o günden sonraki dinleme "gün~silmeZamanı" adlı yeni sayaca yazılır.
+  const bucket = (k = dayKey()) => state.dayDel?.[k] ? `${k}~${state.dayDel[k]}` : k;
+  const liveBucket = s => { const [k, g] = String(s).split('~'); const d = state.dayDel?.[k]; return d ? g === String(d) : g === undefined; };
+  const daySum = k => Object.values(state.daily || {}).reduce((n, dev) => n + (dev[bucket(k)] || 0), 0);
+  // Kaydı olan günler (YYYY-AA-GG)
+  const listenDays = () => [...new Set(Object.values(state.daily || {}).flatMap(Object.keys).filter(liveBucket).map(s => s.split('~')[0]))].filter(k => daySum(k) > 0);
   function addListen(sec) {
     const d = (state.daily[DEVICE] ||= {});
-    const k = dayKey();
+    const k = bucket();
     d[k] = Math.round(((d[k] || 0) + sec) * 10) / 10;
+    // Dinleyişin süresi: her cihaz kendi payını gün gün tutar (birleştirmede büyük olan kalır; gün silinince düşer)
+    const c = cur && ensureRound(books[cur.b]);
+    if (c) { const m = devSec(c, DEVICE); m[k] = Math.round(((m[k] || 0) + sec) * 10) / 10; }
+  }
+  function deleteDay(k) {
+    state.dayDel = { ...(state.dayDel || {}), [k]: Date.now() };
+    pruneOld(); saveNow(); reminderSync(); // hatırlatma bugünkü süreyi yeniden görsün
   }
   // Türkçe karakter ve şapkadan bağımsız arama: "Îmân" = "iman", "Şartları" = "sartlari"
   const norm = s => String(s).toLocaleLowerCase('tr').normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -1104,8 +1210,8 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     const el = document.createElement('button');
     el.type = 'button'; el.className = 'book';
     el.style.setProperty('--tint', b.tint || '#888');
-    const pct = bookPct(b);
-    el.innerHTML = `<div class="tile"><img loading="lazy" alt="" src="${esc(b.cover)}">${pct > 0.5 ? `<div class="pct"><i style="width:${pct.toFixed(1)}%"></i></div>` : ''}</div>
+    const pct = bookPct(b), fc = countsRounds(b) ? finishCount(b) : 0;
+    el.innerHTML = `<div class="tile"><img loading="lazy" alt="" src="${esc(b.cover)}">${fc ? `<span class="rnd" title="${fc} kez bitirildi" aria-label="${fc} kez bitirildi">${fc > 1 ? '×' + fc : '✓'}</span>` : ''}${pct > 0.5 ? `<div class="pct"><i style="width:${pct.toFixed(1)}%"></i></div>` : ''}</div>
       <div><div class="t">${esc(b.title)}</div><div class="m">${b.tracks.length} bölüm${b.total ? ` · ${hoursShort(b.total)}` : ''}</div></div>`;
     el.onclick = () => go(`#kitap-${b.id}`);
     return el;
@@ -1251,14 +1357,17 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     const today = daySum(dayKey());
     const days = Array.from({ length: 7 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); return { d, k: dayKey(d), s: daySum(dayKey(d)) }; });
     const week = days.reduce((n, x) => n + x.s, 0);
-    const allDays = new Set(Object.values(state.daily || {}).flatMap(Object.keys));
+    const allDays = new Set(listenDays());
     const total = [...allDays].reduce((n, k) => n + daySum(k), 0);
     const st = streak();
     const mins = s => Math.round(s / 60);
-    const dur = s => s < 60 ? `${Math.round(s)} sn` : human(s);
+    const dur = s => s < 1 ? '' : s < 60 ? `${Math.round(s)} sn` : human(s);
     const max = Math.max(goal * 60, ...days.map(x => x.s));
     const started = books.filter(b => bookPct(b) > 0.2).sort((a, b) => bookPct(b) - bookPct(a));
     const rem = reminder();
+    // En çok tekrar dinlenenler başta
+    const finished = books.filter(b => countsRounds(b) && finishCount(b)).sort((x, y) => finishCount(y) - finishCount(x) || pastRounds(y).at(-1).end - pastRounds(x).at(-1).end);
+    const finBooks = finished.filter(b => b.key !== TEFSIR_KEY), tefsir = bookByKey(TEFSIR_KEY);
 
     $('statsBody').innerHTML = `
       <h2 class="pt">Dinleme özetin</h2>
@@ -1286,6 +1395,11 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
           <p class="status">O saate kadar hedefini doldurmadıysan bildirim gelir.</p>
         </div>
       </div>
+      ${finished.length ? `<div class="card">
+        <h3>Bitirdiklerin</h3>
+        <p class="status" style="margin:0 0 6px">${finBooks.length ? `${finBooks.length} kitabı toplam ${finBooks.reduce((n, b) => n + finishCount(b), 0)} kez bitirdin.` : ''}${tefsir && finishCount(tefsir) ? ` Kur'an-ı Kerim Tefsiri: ${finishCount(tefsir)} hatim.` : ''}</p>
+        ${finished.map(b => { const p = pastRounds(b), last = p[p.length - 1]; return `<button class="bprog" type="button" data-book="${b.id}"><img alt="" src="${esc(b.cover)}"><span style="min-width:0"><strong>${esc(b.title)}</strong><small>Son bitiriş ${dateMs(last.end)}${roundRec(b)?.cur ? ` · şu an ${roundNo(b)}. ${roundWord(b)}` : ''}</small></span><span class="pc">×${p.length}</span></button>`; }).join('')}
+      </div>` : ''}
       <div class="card">
         <h3>Kitaplar</h3>
         ${started.length ? started.map(b => {
@@ -1325,6 +1439,8 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     b.tracks.forEach(t => { if (state.progress[t.key]) state.progress[t.key] = { pos: 0, dur: state.progress[t.key].dur || t.dur || 0, done: false, at: now }; });
     delete state.lastByBook[b.key];
     if (state.plans[b.key]) state.plans[b.key] = { deleted: true, at: now };
+    // Süren dinleyiş baştan başlar; bitmiş dinleyişlerin geçmişi kalır
+    const rr = roundRec(b); if (rr?.cur) { rr.cur = { n: rr.cur.n, start: now, sec: {} }; rr.at = now; }
     state.recent = state.recent.filter(k => k !== b.key);
     if (state.last && keys.has(state.last)) { stopIfIn(keys); state.last = null; }
     saveNow();
@@ -1339,8 +1455,8 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   function clearAll() {
     const now = Date.now();
     stopIfIn(null);
-    state.epoch = { progress: now, bookmarks: now, daily: now, plans: now };
-    Object.assign(state, { progress: {}, bookmarks: {}, daily: {}, plans: {}, last: null, lastByBook: {}, recent: [] });
+    state.epoch = { progress: now, bookmarks: now, daily: now, plans: now, rounds: now };
+    Object.assign(state, { progress: {}, bookmarks: {}, daily: {}, plans: {}, rounds: {}, last: null, lastByBook: {}, recent: [] });
     saveNow();
     toast('Tüm dinleme verilerin silindi');
   }
@@ -1349,10 +1465,15 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     const started = books.filter(b => b.tracks.some(t => { const p = prog(t); return p && (p.done || p.pos > 1); }) || lastInBook(b.id) != null);
     const marks = Object.entries(state.bookmarks).filter(([, m]) => !m.deleted && byKey.get(m.k))
       .map(([id, m]) => ({ id, ...m, ...byKey.get(m.k) })).sort((x, y) => y.at - x.at);
-    const days = new Set(Object.values(state.daily || {}).flatMap(Object.keys));
+    const days = new Set(listenDays());
     const total = [...days].reduce((n, k) => n + daySum(k), 0);
+    const dayList = [...days].sort().reverse();
+    const dayName = k => k === dayKey() ? 'Bugün' : k === addDays(dayKey(), -1) ? 'Dün' : new Date(k + 'T12:00:00').toLocaleDateString('tr', { weekday: 'long', day: 'numeric', month: 'long', ...(k.slice(0, 4) !== dayKey().slice(0, 4) ? { year: 'numeric' } : {}) });
+    const dayLen = s => s < 60 ? `${Math.round(s)} sn` : human(s);
+    const dayRow = k => `<div class="drow day"><span style="min-width:0;grid-column:1/3"><strong>${esc(dayName(k))}</strong><small>${dayLen(daySum(k))} dinlendi</small></span><button class="dbtn icon" type="button" data-delday="${k}" aria-label="${esc(dayName(k))} kaydını sil">${ICON_X}</button></div>`;
     const plans = books.filter(b => activePlan(b));
-    const nothing = !started.length && !marks.length && !days.size && !plans.length;
+    const rounded = books.filter(b => countsRounds(b) && finishCount(b));
+    const nothing = !started.length && !marks.length && !days.size && !plans.length && !rounded.length;
 
     $('dataBody').innerHTML = `
       <h2 class="pt">Verilerim</h2>
@@ -1366,7 +1487,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
 
       <div class="card">
         <h3>Yer imleri <small class="count">${marks.length}</small></h3>
-        ${marks.length ? marks.map(m => { const b = books[m.b], t = b.tracks[m.t]; return `<div class="drow"><img alt="" src="${esc(b.cover)}"><span style="min-width:0"><strong>${m.note ? esc(m.note) : esc(t.name)}</strong><small>${esc(b.title)} · ${m.note ? esc(t.name) + ' · ' : ''}${fmt(m.pos)}</small></span><button class="dbtn icon" type="button" data-delmark="${m.id}" aria-label="Yer imini sil">${ICON_X}</button></div>`; }).join('')
+        ${marks.length ? marks.map(m => { const b = books[m.b], t = b.tracks[m.t]; return `<div class="drow"><img alt="" src="${esc(b.cover)}"><span style="min-width:0"><strong>${m.note ? esc(m.note) : esc(t.name)}</strong><small>${esc(b.title)} · ${m.note ? esc(t.name) + ' · ' : ''}${fmt(m.pos)}${m.r && (m.r > 1 || finishCount(b)) ? ` · ${m.r}. ${roundWord(b)}` : ''}</small></span><button class="dbtn icon" type="button" data-delmark="${m.id}" aria-label="Yer imini sil">${ICON_X}</button></div>`; }).join('')
           + `<div class="drow end"><button class="dbtn" type="button" id="delMarks">Tüm yer imlerini sil</button></div>`
           : '<p class="empty-card">Kayıtlı yer imi yok.</p>'}
       </div>
@@ -1378,14 +1499,22 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
       </div>
 
       <div class="card">
+        <h3>Bitirilen dinleyişler <small class="count">${rounded.length} kitap</small></h3>
+        ${rounded.length ? rounded.map(b => `<div class="drow"><img alt="" src="${esc(b.cover)}"><span style="min-width:0"><strong>${esc(b.title)}</strong><small>${finishCount(b)} ${b.key === TEFSIR_KEY ? 'hatim' : 'kez bitirildi'} · son ${dateMs(pastRounds(b).at(-1).end)}</small></span><button class="dbtn" type="button" data-delrounds="${b.id}">Sil</button></div>`).join('')
+          : '<p class="empty-card">Henüz bitirilmiş kitap yok. Bir kitabı bitirdiğinde her dinleyiş burada ayrı sayılır.</p>'}
+      </div>
+
+      <div class="card">
         <h3>Dinleme geçmişi</h3>
-        ${days.size ? `<div class="drow"><span style="min-width:0;grid-column:1/3"><strong>${days.size} günlük kayıt · toplam ${human(total) || Math.round(total) + ' sn'}</strong><small>İstatistiklerdeki günlük süreler ve seri bu kayıttan hesaplanır.</small></span><button class="dbtn" type="button" id="delHistory">Geçmişi sil</button></div>`
+        ${days.size ? `<div class="drow"><span style="min-width:0;grid-column:1/3"><strong>${days.size} günlük kayıt · toplam ${human(total) || Math.round(total) + ' sn'}</strong><small>İstatistiklerdeki günlük süreler ve seri bu kayıttan hesaplanır. Yanlışlıkla dinlediğin bir günü aşağıdan tek başına silebilirsin.</small></span><button class="dbtn" type="button" id="delHistory">Geçmişi sil</button></div>
+          ${dayList.slice(0, 7).map(dayRow).join('')}
+          ${dayList.length > 7 ? `<details class="day-more"><summary>Daha eski ${dayList.length - 7} gün</summary>${dayList.slice(7).map(dayRow).join('')}</details>` : ''}`
           : '<p class="empty-card">Dinleme geçmişi yok.</p>'}
       </div>
 
       <div class="card danger-zone">
         <h3>Tümünü sil</h3>
-        <p class="hint">İlerleme, kaldığın yer, yer imleri, okuma planları ve dinleme geçmişi silinir. Tema, hız ve hedef ayarların kalır.</p>
+        <p class="hint">İlerleme, kaldığın yer, yer imleri, okuma planları, bitirilen dinleyişler ve dinleme geçmişi silinir. Tema, hız ve hedef ayarların kalır.</p>
         <button class="dbtn solid" type="button" id="delAll" ${nothing ? 'disabled' : ''}>Tüm dinleme verilerimi sil</button>
       </div>
 
@@ -1399,6 +1528,23 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     body.querySelectorAll('[data-reset]').forEach(x => x.onclick = () => {
       const b = books[+x.dataset.reset];
       confirmPop('İlerlemeyi sıfırla', `<b>${esc(b.title)}</b> kitabındaki dinlenen bölümler ve kaldığın yer silinecek. Yer imlerin kalır.`, 'Sıfırla', () => { resetBook(b.id); renderData(); });
+    });
+    body.querySelectorAll('[data-delday]').forEach(x => x.onclick = () => {
+      const k = x.dataset.delday;
+      confirmPop('Bu günün kaydını sil', `<b>${esc(dayName(k))}</b> dinlenen ${dayLen(daySum(k))} silinecek. Günlük hedef, seri, toplam süre ve o günü kapsayan dinleyişlerin süresi buna göre düzelir. Bölümlerde kaldığın yer değişmez; gerekirse çalarda konumu geri sürükleyebilirsin.`, 'Sil', () => {
+        deleteDay(k); toast(`${dayName(k)}: kayıt silindi`); renderData();
+      });
+    });
+    body.querySelectorAll('[data-delrounds]').forEach(x => x.onclick = () => {
+      const b = books[+x.dataset.delrounds];
+      confirmPop('Dinleyiş geçmişini sil', `<b>${esc(b.title)}</b> için ${finishCount(b)} bitmiş ${roundWord(b)} kaydı silinecek. Kitaptaki bölüm işaretlerin ve kaldığın yer kalır.`, 'Sil', () => {
+        const r = roundRec(b), now = Date.now();
+        for (const n of Object.keys(r.hist)) r.hist[n] = { deleted: true, at: now };
+        // Süren dinleyiş varsa 1. sayılır; kitap tamamen dinlenmiş görünüyorsa 1 kez bitmiş sayılmaya devam eder
+        const ats = progAts(b);
+        r.cur = r.cur ? { ...r.cur, n: 1 } : { n: 1, start: ats.length ? Math.min(...ats) : now, sec: {}, partial: true }; r.at = now;
+        saveNow(); checkRounds(); toast('Dinleyiş geçmişi silindi'); renderData();
+      });
     });
     body.querySelectorAll('[data-delplan]').forEach(x => x.onclick = () => { const b = books[+x.dataset.delplan]; state.plans[b.key] = { deleted: true, at: Date.now() }; saveNow(); toast('Plan kaldırıldı'); renderData(); });
     body.querySelectorAll('[data-delmark]').forEach(x => x.onclick = () => { deleteBookmark(x.dataset.delmark); toast('Yer imi silindi'); renderData(); });
@@ -1515,7 +1661,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
         <img alt="" src="${esc(b.cover)}">
         <div style="min-width:0">
           <h2>${esc(b.title)}</h2>
-          <p>${b.tracks.length} bölüm · ${human(b.total)}${done ? ` · ${done} dinlendi` : ''}</p>
+          <p>${b.tracks.length} bölüm · ${human(b.total)}${done ? ` · ${done} dinlendi` : ''}${countsRounds(b) && finishCount(b) ? ` · ${finishCount(b)} ${roundWord(b)} tamamlandı` : ''}</p>
           <div class="series-acts"><button class="btn-plan" type="button" id="seriesPlay"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>${r != null ? `Devam et · Bölüm ${b.tracks[r].no}` : 'Dinlemeye başla'}</button><a href="#kitap-${b.id}">Okuma planı ve ayrıntılar</a></div>
         </div>
       </div>
@@ -1532,7 +1678,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
       renderAudio();
       host.querySelector('[aria-selected="true"]').scrollIntoView({ inline: 'center', block: 'nearest' });
     });
-    host.querySelector('#seriesPlay').onclick = () => { if (cur && cur.b === b.id && cur.t === r) toggle(); else play(b.id, r ?? 0); };
+    host.querySelector('#seriesPlay').onclick = () => { if (isFinished(b) && !justBrowsing.has(b.key)) return askNewRound(b, 0); if (cur && cur.b === b.id && cur.t === r) toggle(); else play(b.id, r ?? 0); };
     const list = host.querySelector('.list');
     const paint = () => {
       const q = norm(audioQuery).split(/\s+/).filter(Boolean);
@@ -1571,7 +1717,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
 
   // Son 14 günde (ya da dinlemeye başladığından beri) günde ortalama ne kadar içerik dinlendiği
   function pace() {
-    const days = [...new Set(Object.values(state.daily || {}).flatMap(Object.keys))].sort();
+    const days = listenDays().sort();
     if (!days.length) return 0;
     const n = Math.min(14, dayDiff(days[0], dayKey()) + 1);
     let wall = 0;
@@ -1650,7 +1796,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     const pl = planInfo(b), est = finishEstimate(b);
     const estLine = est ? `<p class="plan-est"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7z"/></svg><span>${esc(est.text)}</span></p>` : '';
     if (!pl) {
-      host.innerHTML = remainingOf(b) < 60 ? '' : `${estLine}<button class="plan-start" type="button" id="planNew"><svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14zM7 12h5v5H7z"/></svg><span><b>Okuma planı oluştur</b>Kaç günde bitirmek istediğini seç; her gün ne dinleyeceğini hazırlayalım.</span></button>`;
+      host.innerHTML = remainingOf(b) < 60 || isFinished(b) ? '' : `${estLine}<button class="plan-start" type="button" id="planNew"><svg viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 16H5V10h14zM7 12h5v5H7z"/></svg><span><b>Okuma planı oluştur</b>Kaç günde bitirmek istediğini seç; her gün ne dinleyeceğini hazırlayalım.</span></button>`;
       host.querySelector('#planNew')?.addEventListener('click', () => openPlanSetup(b));
       return;
     }
@@ -1710,6 +1856,62 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     });
   }
 
+  // ---------- Dinleyiş ekranları ----------
+  const dateMs = ms => { const d = new Date(ms); return d.toLocaleDateString('tr', { day: 'numeric', month: 'long', ...(d.getFullYear() !== new Date().getFullYear() ? { year: 'numeric' } : {}) }); };
+  const roundAcc = b => b.key === TEFSIR_KEY ? 'hatmi' : 'dinleyişi';
+  const finishedText = (b, n) => b.key === TEFSIR_KEY ? `${n} hatim tamamladın` : `Bu kitabı ${n} kez bitirdin`;
+  // "1. dinleyiş · 3 Mart – 28 Nisan · 56 günde · 22 sa · ort. 1,25× · planında bitti"
+  function roundFacts(b, h) {
+    const a = dateMs(h.start), z = dateMs(h.end);
+    const days = dayDiff(dayKey(new Date(h.start)), dayKey(new Date(h.end))) + 1;
+    const f = [a === z ? a : `${a} – ${z}`, `${days} günde`];
+    const sec = histSec(h);
+    if (sec > 60) f.push(human(sec));
+    const v = sec > 600 && b.total ? b.total / sec : 0; // içerik süresi / gerçek süre
+    if (v >= 0.5 && v <= 3.5) f.push(`ort. ${fmtSpeed(Math.round(v * 20) / 20)}`);
+    if (h.plan) f.push(h.plan.late ? `plandan ${h.plan.late} gün geç` : 'planında bitti');
+    if (h.manual) f.push('bitmiş sayıldı');
+    return f;
+  }
+  function celebrate(b, res) {
+    const n = res.n;
+    openPop(`<div class="pop-h"><h4>Tebrikler!</h4><button class="x" type="button" data-close aria-label="Kapat">${ICON_X}</button></div>
+      <p class="note" style="margin:0 0 8px">${b.key === TEFSIR_KEY ? `<b>${esc(b.title)}</b>: ${n}. hatim tamamlandı.` : `<b>${esc(b.title)}</b> kitabını ${n === 1 ? 'bitirdin' : `${n}. kez bitirdin`}.`}</p>
+      <p class="note" style="margin:0">${roundFacts(b, res.h).map(esc).join(' · ')}</p>
+      <div class="btn-grid"><button class="btn2" type="button" data-close>Tamam</button><button class="btn2 primary" type="button" data-goto="#kitap-${b.id}">Geçmişi gör</button></div>`, { dark: false });
+    if (viewBook === b.id) renderDetail();
+  }
+  function askNewRound(b, ti, startAt) {
+    const n = finishCount(b) + 1;
+    openPop(`<div class="pop-h"><h4>${esc(b.title)}</h4><button class="x" type="button" data-close aria-label="Kapat">${ICON_X}</button></div>
+      <p class="note" style="margin:0">${finishedText(b, n - 1)}. Yeniden mi başlıyorsun, yoksa yalnızca bu bölümü mü dinleyeceksin?</p>
+      <div class="btn-grid"><button class="btn2" type="button" id="rBrowse">Sadece bu bölümü dinle</button><button class="btn2 primary" type="button" id="rNew">${n}. ${roundAcc(b)} başlat</button></div>`, {
+      dark: false,
+      onMount(card) {
+        card.querySelector('#rBrowse').onclick = () => { closePop(); justBrowsing.add(b.key); play(b.id, ti, startAt, false); };
+        card.querySelector('#rNew').onclick = () => { closePop(); startRound(b); toast(`${n}. ${roundWord(b)} başladı`); play(b.id, ti, 0, false); route(); };
+      }
+    });
+  }
+  function renderRounds(b) {
+    const host = $('dRounds');
+    if (!countsRounds(b)) { host.innerHTML = ''; return; }
+    const past = pastRounds(b), fin = isFinished(b), pct = bookPct(b);
+    const canMark = !fin && pct >= 90 && !b.tracks.every(t => prog(t)?.done);
+    let html = '';
+    if (fin) html += `<div class="round-h"><strong>${finishedText(b, past.length)}</strong></div>
+      <button class="btn-plan" type="button" id="roundNew"><svg viewBox="0 0 24 24"><path d="M12 5V2L8 6l4 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>${past.length + 1}. ${roundAcc(b)} başlat</button>`;
+    else if (past.length) html += `<div class="round-h"><strong>${roundNo(b)}. ${roundWord(b)}</strong><span>%${Math.floor(pct)}</span></div><div class="gbar"><i style="width:${pct.toFixed(1)}%"></i></div>`;
+    if (canMark) html += `<button class="round-mark" type="button" id="roundMark">Bitirdim say<small>Birkaç bölüm atlandıysa bu ${roundAcc(b)} bitmiş say.</small></button>`;
+    if (past.length) html += `<details class="round-hist"${fin ? ' open' : ''}><summary>Geçmiş ${b.key === TEFSIR_KEY ? 'hatimler' : 'dinleyişler'} (${past.length})</summary>
+      <ol>${past.slice().reverse().map(h => `<li><b>${h.n}. ${roundWord(b)}</b><span>${roundFacts(b, h).map(esc).join(' · ')}</span></li>`).join('')}</ol></details>`;
+    host.innerHTML = html ? `<div class="round-card">${html}</div>` : '';
+    host.querySelector('#roundNew')?.addEventListener('click', () => askNewRound(b, 0));
+    host.querySelector('#roundMark')?.addEventListener('click', () => confirmPop('Bitirdim say', `<b>${esc(b.title)}</b> için bu ${roundAcc(b)} bitmiş sayılacak. Dinlenmemiş bölümler işaretlenmez; istersen yine dinleyebilirsin.`, 'Bitmiş say', () => {
+      const res = closeRound(b, true); saveNow(); renderDetail(); setTimeout(() => celebrate(b, res), 50);
+    }));
+  }
+
   // ---------- Kitap detayı ----------
   function renderDetail() {
     const b = books[viewBook]; if (!b) return;
@@ -1725,6 +1927,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     $('dCount').textContent = `${b.tracks.length} bölüm`;
     const r = lastInBook(b.id);
     $('dPlay').querySelector('span').textContent = r != null ? `Devam et · Bölüm ${b.tracks[r].no}` : 'Dinlemeye başla';
+    renderRounds(b);
     renderPlanCard(b);
     renderList();
   }
@@ -1816,8 +2019,11 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   $$('[data-back]').forEach(b => b.onclick = () => (navigated ? history.back() : go('')));
 
   // ---------- Çalma ----------
-  function play(bi, ti, startAt) {
+  // Bitmiş kitapta bir bölüm açılınca: yeni dinleyiş mi, yoksa yalnızca göz atma mı? (oturum başına bir kez sorulur)
+  const justBrowsing = new Set();
+  function play(bi, ti, startAt, ask = true) {
     const b = books[bi], t = b?.tracks[ti]; if (!t) return;
+    if (ask && isFinished(b) && !justBrowsing.has(b.key) && !(cur && cur.b === bi)) return askNewRound(b, ti, startAt);
     cur = { b: bi, t: ti };
     state.last = t.key;
     state.lastByBook[b.key] = t.key;
@@ -1925,6 +2131,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   audio.addEventListener('pause', () => { setPlayIcon(false); saveProgress(false); window.skrSync?.flush(); });
   audio.addEventListener('ended', () => {
     saveProgress(true);
+    if (cur) checkRounds(books[cur.b]);
     if (sleep === 'end') { setSleep(0); toast('Uyku zamanlayıcısı: bölüm bitti'); if (viewBook != null) renderDetail(); return; }
     if (!next() && viewBook != null) renderDetail();
   });
@@ -2007,7 +2214,8 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     const t = books[c.b].tracks[c.t];
     const pos = cur ? audio.currentTime : pendingPos(c);
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    state.bookmarks[id] = { k: t.key, pos: Math.floor(pos), at: Date.now() };
+    // r: yer iminin alındığı dinleyiş (tekrar dinlenen kitaplarda gösterilir)
+    state.bookmarks[id] = { k: t.key, pos: Math.floor(pos), at: Date.now(), r: countsRounds(books[c.b]) ? roundNo(books[c.b]) : undefined };
     persist(false);
     editNote(id, true);
   }
@@ -2143,7 +2351,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
             body.querySelector('.prow.current')?.scrollIntoView({ block: 'center' });
           } else {
             const marks = bookmarksOf(b.id);
-            body.innerHTML = marks.length ? `<div>${marks.map(m => `<div class="bm"><button type="button" class="prow" data-id="${m.id}"><span class="no">${b.tracks[m.t].no}</span><span class="nm">${m.note ? `<em>${esc(m.note)}</em>` : ''}${esc(b.tracks[m.t].name)}<small>${fmt(m.pos)} · ${new Date(m.at).toLocaleDateString('tr')}</small></span></button><button class="del" type="button" data-note="${m.id}" aria-label="Notu düzenle"><svg viewBox="0 0 24 24"><path d="M3 17.2V21h3.8l11-11-3.8-3.8zM20.7 7a1 1 0 0 0 0-1.4l-2.3-2.3a1 1 0 0 0-1.4 0l-1.8 1.8 3.8 3.8z"/></svg></button><button class="del" type="button" data-del="${m.id}" aria-label="Yer imini sil">${ICON_X}</button></div>`).join('')}</div>`
+            body.innerHTML = marks.length ? `<div>${marks.map(m => `<div class="bm"><button type="button" class="prow" data-id="${m.id}"><span class="no">${b.tracks[m.t].no}</span><span class="nm">${m.note ? `<em>${esc(m.note)}</em>` : ''}${esc(b.tracks[m.t].name)}<small>${fmt(m.pos)} · ${new Date(m.at).toLocaleDateString('tr')}${m.r && (m.r > 1 || finishCount(b)) ? ` · ${m.r}. ${roundWord(b)}` : ''}</small></span></button><button class="del" type="button" data-note="${m.id}" aria-label="Notu düzenle"><svg viewBox="0 0 24 24"><path d="M3 17.2V21h3.8l11-11-3.8-3.8zM20.7 7a1 1 0 0 0 0-1.4l-2.3-2.3a1 1 0 0 0-1.4 0l-1.8 1.8 3.8 3.8z"/></svg></button><button class="del" type="button" data-del="${m.id}" aria-label="Yer imini sil">${ICON_X}</button></div>`).join('')}</div>`
               : '<p class="note">Henüz yer imi yok. Dinlerken yer imi düğmesine basınca o anki konum buraya kaydedilir.</p>';
             body.querySelectorAll('[data-id]').forEach(r => r.onclick = () => { const m = state.bookmarks[r.dataset.id]; const at = byKey.get(m.k); closePop(); if (cur && cur.b === at.b && cur.t === at.t) { audio.currentTime = m.pos; audio.play().catch(() => {}); } else play(at.b, at.t, m.pos); });
             body.querySelectorAll('[data-del]').forEach(d => d.onclick = () => { state.bookmarks[d.dataset.del] = { ...state.bookmarks[d.dataset.del], deleted: true, at: Date.now() }; persist(false); show('marks'); });
@@ -2303,6 +2511,25 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
         const l = state.plans[k];
         if ((v.at || 0) >= ep('plans') && (!l || (v.at || 0) > (l.at || 0))) state.plans[k] = v;
       }
+      // Silinen günler: her gün için en son silme zamanı (sayaçlar bu zamana göre ayrılır)
+      for (const [k, at] of Object.entries(r.dayDel || {})) if (at > (state.dayDel[k] || 0)) state.dayDel[k] = at;
+      // Dinleyişler: geçmiş kayıt başına yeni olan; süren dinleyiş yeni olan tarafınki (aynı dinleyişse cihaz süreleri birleşir)
+      for (const [k, v] of Object.entries(r.rounds || {})) {
+        const l = (state.rounds[k] ||= { cur: null, at: 0, hist: {} });
+        for (const [n, h] of Object.entries(v.hist || {})) if ((h.at || 0) >= ep('rounds') && (!l.hist[n] || (h.at || 0) > (l.hist[n].at || 0))) l.hist[n] = h;
+        if ((v.at || 0) >= ep('rounds')) {
+          const same = l.cur && v.cur && l.cur.n === v.cur.n;
+          // Cihaz cihaz, gün gün büyük olan
+          let sec = null;
+          if (same) {
+            const a = { sec: JSON.parse(JSON.stringify(l.cur.sec || {})) }, z = { sec: JSON.parse(JSON.stringify(v.cur.sec || {})) };
+            for (const d of Object.keys(z.sec)) { const m = devSec(a, d); for (const [k, s] of Object.entries(devSec(z, d))) if (s > (m[k] || 0)) m[k] = s; }
+            sec = a.sec;
+          }
+          if ((v.at || 0) > (l.at || 0)) { l.cur = v.cur ? { ...v.cur } : null; l.at = v.at; }
+          if (same && l.cur) l.cur.sec = sec;
+        }
+      }
       // Dinleme süreleri: her cihazın her günü için büyük olan (sayaçlar yalnızca artar);
       // geçmiş başka cihazda silinmişse buradaki eski sayaçlar da silinir
       if ((re.daily || 0) > (le.daily || 0)) state.daily = {};
@@ -2312,8 +2539,9 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
           for (const [k, s] of Object.entries(days)) if (s > (l[k] || 0)) l[k] = s;
         }
       }
-      for (const k of Object.keys(le)) le[k] = ep(k);
+      for (const k of Object.keys(re)) le[k] = ep(k);
       pruneOld();
+      checkRounds(); // hesaptan gelen bölüm işaretleriyle biten kitaplar
       if ((r.updatedAt || 0) > (state.updatedAt || 0)) {
         state.last = r.last ?? null; state.lastByBook = r.lastByBook || {}; state.recent = r.recent || [];
         state.speed = r.speed || 1; state.goal = r.goal || 15; state.updatedAt = r.updatedAt;
@@ -2337,7 +2565,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
   $('closeSheet').onclick = closeSheet;
   $('toBook').onclick = () => { const c = cur || pending(); go(c ? `#kitap-${c.b}` : ''); };
   $('search').addEventListener('input', renderList);
-  $('dPlay').onclick = () => { const r = lastInBook(viewBook); if (cur && cur.b === viewBook && cur.t === r) toggle(); else play(viewBook, r ?? 0); };
+  $('dPlay').onclick = () => { const r = lastInBook(viewBook); if (isFinished(books[viewBook]) && !justBrowsing.has(books[viewBook].key)) return askNewRound(books[viewBook], 0); if (cur && cur.b === viewBook && cur.t === r) toggle(); else play(viewBook, r ?? 0); };
   window.matchMedia('(min-width: 1024px)').addEventListener('change', () => showNow(cur || pending()));
 
   $('gSearch').addEventListener('input', renderSearch);
@@ -2373,6 +2601,7 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
     setTimeout(checkReminderNow, 4000);
     setInterval(checkReminderNow, 10 * 60 * 1000);
   }
+  checkRounds(); // eski sürümde bitirilmiş kitaplar 1 kez bitmiş sayılır
   const l = pending();
   if (l) showNow(l);
   if (location.hash === '#calar' && !l) history.replaceState(null, '', location.pathname);
