@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Kitap Rafı">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="description" content="Hakikat Kitabevi kitaplarını sesli dinleyin; kaldığınız yerden devam edin.">
-<title>Huzuru Dinle</title>
+<title>Sesli Kitap Rafı</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="logo.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
@@ -619,6 +619,14 @@ mark { background: color-mix(in srgb, var(--accent) 22%, transparent); color: in
 .plan-acts { display: flex; gap: 16px; border-top: 1px solid var(--line); padding-top: 10px; }
 .plan-acts button { font-size: var(--fs-sm); font-weight: 700; color: var(--accent); }
 .plan-acts button + button { color: var(--muted); }
+.plan-acts { flex-wrap: wrap; }
+.pd-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pd-kpis div { background: var(--surface-2); border-radius: 12px; padding: 10px; min-width: 0; }
+.pd-kpis small { display: block; font-size: var(--fs-xs); color: var(--muted); }
+.pd-kpis strong { font-size: var(--fs-base); font-variant-numeric: tabular-nums; }
+.pd-cal .cal-day { max-height: 40px; font-size: var(--fs-xs); }
+.cal-day.nodata { background: transparent; outline: 1px dashed var(--line); outline-offset: -1px; color: var(--muted); }
+.cal-legend i.cal-day { width: 12px; height: 12px; border-radius: 3px; display: inline-block; aspect-ratio: auto; vertical-align: middle; margin-left: 6px; }
 .plan-preview { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 12px; background: var(--chip); margin-top: 14px; font-size: var(--fs-sm); color: var(--muted-c); }
 .plan-preview strong { color: inherit; font-size: var(--fs-lg); color: var(--fg); }
 .plan-preview .warn { color: var(--warn-fg); margin-top: 4px; }
@@ -1842,7 +1850,7 @@ button.cal-day:hover { filter: brightness(.95); }
     else if (behind > 10 * 60) { status = `Plana göre ${human(behind)} gerideysin`; tone = 'warn'; }
     else if (behind < -10 * 60) { status = `Plandan ${human(-behind)} öndesin`; tone = 'good'; }
     else { status = 'Plana uygun gidiyorsun'; tone = 'ok'; }
-    return { p, totalDays, dayNo, daysLeft, overdue, target, doneToday, todayLeft, behind, finished, rem, status, tone };
+    return { p, totalDays, dayNo, daysLeft, overdue, target, doneToday, todayLeft, behind, finished, rem, status, tone, L, expected };
   }
 
   // Bugün dinlenecek bölümler: kaldığın yerden başlayıp bugünün kalan hedefi dolana kadar
@@ -1902,12 +1910,57 @@ button.cal-day:hover { filter: brightness(.95); }
       ${tracks.length ? `<div class="plan-list"><small>Bugünün bölümleri</small>${tracks.slice(0, 5).map(x => { const t = b.tracks[x.t]; return `<button type="button" data-plan-t="${x.t}"><span class="no">${t.no}</span><span class="nm">${esc(t.name)}</span><span class="d">${x.partial ? `ilk ${human(atSpeed(x.part))}` : human(atSpeed(x.part))}</span></button>`; }).join('')}${tracks.length > 5 ? `<small>ve ${tracks.length - 5} bölüm daha</small>` : ''}</div>
         <button class="btn-plan" type="button" id="planGo"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Bugünün planını dinle</button>` : ''}
       ${estLine}
-      <div class="plan-acts"><button type="button" id="planEdit">Planı değiştir</button><button type="button" id="planDel">Planı kaldır</button></div>
+      <div class="plan-acts"><button type="button" id="planInfo">Ayrıntılar</button><button type="button" id="planEdit">Planı değiştir</button><button type="button" id="planDel">Planı kaldır</button></div>
     </div>`;
     host.querySelectorAll('[data-plan-t]').forEach(x => x.onclick = () => play(b.id, +x.dataset.planT));
     host.querySelector('#planGo')?.addEventListener('click', () => { if (cur && cur.b === b.id && cur.t === tracks[0].t) { if (audio.paused) toggle(); } else play(b.id, tracks[0].t); });
+    host.querySelector('#planInfo').onclick = () => openPlanDetail(b);
     host.querySelector('#planEdit').onclick = () => openPlanSetup(b);
     host.querySelector('#planDel').onclick = () => confirmPop('Planı kaldır', `<b>${esc(b.title)}</b> için okuma planı kaldırılacak. Dinleme ilerlemen kalır.`, 'Kaldır', () => { state.plans[b.key] = { deleted: true, at: Date.now() }; saveNow(); toast('Plan kaldırıldı'); route(); });
+  }
+
+  // ---------- Plan ayrıntıları: baştan beri ilerleme, gün gün takvim, beklenen–gerçek ----------
+  // Süreler planın geri kalanı gibi içerik süresidir; ekranda seçili hızda geçen süre olarak gösterilir.
+  function openPlanDetail(b) {
+    const pl = planInfo(b); if (!pl) return;
+    const p = pl.p, today = dayKey(), goalTotal = Math.max(1, b.total - p.base);
+    const daily = goalTotal / pl.totalDays;                     // planın ortalama günlük hedefi
+    const since = Math.max(0, pl.L - p.base);                   // plan başından beri dinlenen
+    const pctPlan = Math.min(100, since / goalTotal * 100);
+    const expNow = p.base + goalTotal * Math.min(1, pl.dayNo / pl.totalDays); // bugünün sonunda olunması gereken
+    // Gün gün kayıt bu özellikten sonra başladı; öncesindeki günler "kayıt yok" görünür
+    const firstTracked = Object.values(state.dayContent || {}).flatMap(Object.keys).map(k => k.slice(0, 10)).sort()[0] || today;
+    const days = [];
+    for (let i = 0; i < pl.totalDays; i++) {
+      const k = addDays(p.start, i);
+      const s = k === today ? pl.doneToday : (dayMap(state.dayContent, k)[b.key] || 0);
+      const kind = k > today ? 'future' : k < firstTracked ? 'nodata' : s >= daily * 0.95 ? 'met' : s >= 60 ? 'part' : 'none';
+      days.push({ k, s, kind, n: i + 1 });
+    }
+    const past = days.filter(d => d.k <= today && d.kind !== 'nodata');
+    const met = past.filter(d => d.kind === 'met').length;
+    const lead = (new Date(p.start + 'T12:00:00').getDay() + 6) % 7;
+    const cls = { met: 'l4', part: 'l2', none: '', nodata: 'nodata', future: 'future' };
+    const word = { met: 'hedef tuttu', part: 'kısmen', none: 'dinlenmedi', nodata: 'kayıt yok', future: 'henüz gelmedi' };
+    const diff = pl.L - expNow;
+    openPop(`<div class="pop-h"><h4>Okuma planı</h4><button class="x" type="button" data-close aria-label="Kapat">${ICON_X}</button></div>
+      <p class="note" style="margin:0 0 12px"><b>${esc(b.title)}</b> · ${dateWords(p.start)} – ${dateWords(p.end)} · ${pl.totalDays} gün</p>
+      <div class="pd-kpis">
+        <div><small>Gün</small><strong>${pl.dayNo} / ${pl.totalDays}</strong></div>
+        <div><small>Plan ilerlemesi</small><strong>%${Math.floor(pctPlan)}</strong></div>
+        <div><small>Plan başından beri</small><strong>${human(atSpeed(since)) || '0 dk'}</strong></div>
+      </div>
+      <div class="gbar" style="margin:10px 0 4px"><i style="width:${pctPlan.toFixed(1)}%"></i></div>
+      <p class="note" style="margin:0 0 14px">Bugünün sonu için plan: kitabın %${Math.floor(Math.min(100, expNow / b.total * 100))} kısmı · şu an: %${Math.floor(bookPct(b))}.
+        ${pl.finished ? '' : Math.abs(diff) < 60 ? ' Tam plandasın.' : diff > 0 ? ` Plandan ${human(atSpeed(diff))} öndesin.` : ` Bugünün sonuna kadar ${human(atSpeed(-diff))} daha dinlemen gerekiyor.`}</p>
+      <div class="setrow" style="border:0;padding:0 0 8px"><span>Günler${past.length ? ` · hedef tutulan gün: ${met} / ${past.length}` : ''}</span></div>
+      <div class="cal-grid pd-cal">${['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'].map(w => `<span class="wd">${w}</span>`).join('')}${'<span class="cal-day empty"></span>'.repeat(lead)}${days.map(d => {
+        const label = `${dayName(d.k)} · ${d.n}. gün · ${d.kind === 'nodata' || d.kind === 'future' ? word[d.kind] : `${human(atSpeed(d.s)) || '0 dk'} · ${word[d.kind]}`}`;
+        return `<span class="cal-day ${cls[d.kind]}${d.k === today ? ' today' : ''}" title="${esc(label)}" aria-label="${esc(label)}">${+d.k.slice(8)}</span>`;
+      }).join('')}</div>
+      <div class="cal-foot"><span class="cal-legend"><i class="cal-day l4"></i> Tuttu <i class="cal-day l2"></i> Kısmen <i class="cal-day"></i> Dinlenmedi${days.some(d => d.kind === 'nodata') ? ' <i class="cal-day nodata"></i> Kayıt yok' : ''}</span>
+        <span>Günlük hedef ortalama ${human(atSpeed(daily)) || '1 dk'} (${fmtSpeed(speed)} hızda)</span></div>
+      ${days.some(d => d.kind === 'nodata') ? '<p class="note" style="margin:10px 0 0">"Kayıt yok" günler bu ayrıntılar eklenmeden önceki günlerdir; o günlerde dinlediklerin plan ilerlemesine dahildir.</p>' : ''}`, { dark: false });
   }
 
   function openPlanSetup(b) {
