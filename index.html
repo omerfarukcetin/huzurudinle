@@ -1060,9 +1060,10 @@ button.cal-day:hover { filter: brightness(.95); }
   // daily[cihaz][YYYY-AA-GG] = dinlenen saniye (her cihaz kendi sayacını tutar, toplam = hepsinin toplamı)
   // last / lastByBook / recent / speed / goal: updatedAt'ı yeni olan taraf kazanır
   // epoch: "şu andan önceki kayıtları sil" zamanları (silme işlemi senkronla diğer cihazlara da geçsin diye)
-  // plans[kitap] = {start, end (YYYY-AA-GG), base: plan başında dinlenmiş içerik sn, snap: {day, listened}, at, deleted?}
+  // plans[kitap] = {start, end (YYYY-AA-GG), base: plan başında dinlenmiş içerik sn, snap: {day, listened} (yalnız geçiş günü için), at, deleted?}
+  // dayBooks / dayContent[cihaz][gün][kitap] = o gün o kitapta dinlenen gerçek / içerik saniyesi
   // rounds[kitap]: dinleyişler (aşağıda "Dinleyişler" bölümünde)
-  const DEF = () => ({ v: 2, progress: {}, bookmarks: {}, daily: {}, plans: {}, rounds: {}, dayDel: {}, dayBooks: {}, last: null, lastByBook: {}, recent: [], speed: 1, goal: 15, updatedAt: 0, epoch: { progress: 0, bookmarks: 0, daily: 0, plans: 0, rounds: 0 } });
+  const DEF = () => ({ v: 2, progress: {}, bookmarks: {}, daily: {}, plans: {}, rounds: {}, dayDel: {}, dayBooks: {}, dayContent: {}, last: null, lastByBook: {}, recent: [], speed: 1, goal: 15, updatedAt: 0, epoch: { progress: 0, bookmarks: 0, daily: 0, plans: 0, rounds: 0 } });
   let state = loadState();
   const DEVICE = store.get('device', null) || (() => { const id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); store.set('device', id); return id; })();
 
@@ -1098,7 +1099,7 @@ button.cal-day:hover { filter: brightness(.95); }
     }
     // Silinmiş günlerin eski sayaçları (dinleme geçmişi ve dinleyiş süreleri)
     const dropDead = by => { for (const v of Object.values(by || {})) if (v && typeof v === 'object') for (const s of Object.keys(v)) if (!liveBucket(s)) delete v[s]; };
-    dropDead(state.daily); dropDead(state.dayBooks);
+    dropDead(state.daily); dropDead(state.dayBooks); dropDead(state.dayContent);
     for (const r of Object.values(state.rounds)) { dropDead(r.cur?.sec); for (const h of Object.values(r.hist || {})) dropDead(h.secBy); }
   }
   // Silme işlemleri beklemeden hesaba yazılır
@@ -1211,18 +1212,21 @@ button.cal-day:hover { filter: brightness(.95); }
   // Kaydı olan günler (YYYY-AA-GG)
   const listenDays = () => [...new Set(Object.values(state.daily || {}).flatMap(Object.keys).filter(liveBucket).map(s => s.split('~')[0]))].filter(k => daySum(k) > 0);
   // Bir günde hangi kitaptan ne kadar dinlendi: {kitap anahtarı: sn} (tüm cihazlar toplanır)
-  const dayBooks = k => {
+  // dayBooks: gerçek süre (takvim); dayContent: aynı yapıda içerik süresi = gerçek süre × hız (okuma planı)
+  const dayMap = (map, k) => {
     const out = {};
-    for (const dev of Object.values(state.dayBooks || {})) for (const [bk, s] of Object.entries(dev[bucket(k)] || {})) out[bk] = (out[bk] || 0) + s;
+    for (const dev of Object.values(map || {})) for (const [bk, s] of Object.entries(dev[bucket(k)] || {})) out[bk] = (out[bk] || 0) + s;
     return out;
   };
+  const dayBooks = k => dayMap(state.dayBooks, k);
+  const addTo = (map, k, bk, s) => { const m = ((map[DEVICE] ||= {})[k] ||= {}); m[bk] = Math.round(((m[bk] || 0) + s) * 10) / 10; };
   const dayName = k => k === dayKey() ? 'Bugün' : k === addDays(dayKey(), -1) ? 'Dün' : new Date(k + 'T12:00:00').toLocaleDateString('tr', { weekday: 'long', day: 'numeric', month: 'long', ...(k.slice(0, 4) !== dayKey().slice(0, 4) ? { year: 'numeric' } : {}) });
   const dayLen = s => s < 60 ? `${Math.round(s)} sn` : human(s);
   function addListen(sec) {
     const d = (state.daily[DEVICE] ||= {});
     const k = bucket();
     d[k] = Math.round(((d[k] || 0) + sec) * 10) / 10;
-    if (cur) { const m = ((state.dayBooks[DEVICE] ||= {})[k] ||= {}), bk = books[cur.b].key; m[bk] = Math.round(((m[bk] || 0) + sec) * 10) / 10; }
+    if (cur) { const bk = books[cur.b].key; addTo(state.dayBooks, k, bk, sec); addTo(state.dayContent, k, bk, sec * (audio.playbackRate || 1)); }
     // Dinleyişin süresi: her cihaz kendi payını gün gün tutar (birleştirmede büyük olan kalır; gün silinince düşer)
     const c = cur && ensureRound(books[cur.b]);
     if (c) { const m = devSec(c, DEVICE); m[k] = Math.round(((m[k] || 0) + sec) * 10) / 10; }
@@ -1544,12 +1548,12 @@ button.cal-day:hover { filter: brightness(.95); }
     saveNow();
   }
   function deleteAllBookmarks() { state.epoch.bookmarks = Date.now(); state.bookmarks = {}; saveNow(); toast('Tüm yer imleri silindi'); }
-  function clearHistory() { state.epoch.daily = Date.now(); state.daily = {}; state.dayBooks = {}; saveNow(); toast('Dinleme geçmişi silindi'); }
+  function clearHistory() { state.epoch.daily = Date.now(); state.daily = {}; state.dayBooks = {}; state.dayContent = {}; saveNow(); toast('Dinleme geçmişi silindi'); }
   function clearAll() {
     const now = Date.now();
     stopIfIn(null);
     state.epoch = { progress: now, bookmarks: now, daily: now, plans: now, rounds: now };
-    Object.assign(state, { progress: {}, bookmarks: {}, daily: {}, dayBooks: {}, plans: {}, rounds: {}, last: null, lastByBook: {}, recent: [] });
+    Object.assign(state, { progress: {}, bookmarks: {}, daily: {}, dayBooks: {}, dayContent: {}, plans: {}, rounds: {}, last: null, lastByBook: {}, recent: [] });
     saveNow();
     toast('Tüm dinleme verilerin silindi');
   }
@@ -1812,19 +1816,24 @@ button.cal-day:hover { filter: brightness(.95); }
   function planInfo(b) {
     const p = activePlan(b); if (!p) return null;
     const today = dayKey(), L = listened(b), rem = remainingOf(b);
-    // Günün başındaki durum: bugünkü hedef ve "bugün dinlenen" buna göre hesaplanır
+    // "Bugün dinlenen": hesaptaki gün gün içerik süresinden (tüm cihazların toplamı)
+    const content = dayMap(state.dayContent, today)[b.key] || 0;
+    // Geçiş: bu kayıt başlamadan önceki günlerde (güncellemenin yüklendiği gün) eski yöntem de hesaba katılır:
+    // cihazın o gün siteyi ilk açtığı andaki konum
+    const tracked = Object.values(state.dayContent || {}).some(dev => Object.keys(dev).some(k => k.slice(0, 10) < today));
     if (!p.snap || p.snap.day !== today) { p.snap = { day: today, listened: L }; store.set('state', state); }
+    const doneToday = Math.min(L, tracked ? content : Math.max(content, L - p.snap.listened));
+    const dayStartL = L - doneToday;                         // gün başında dinlenmiş içerik
     const totalDays = dayDiff(p.start, p.end) + 1;
     const dayNo = Math.min(totalDays, Math.max(1, dayDiff(p.start, today) + 1));
     const overdue = dayDiff(today, p.end) < 0;
     const daysLeft = overdue ? 1 : dayDiff(today, p.end) + 1;
-    const remAtDayStart = Math.max(0, b.total - p.snap.listened);
+    const remAtDayStart = Math.max(0, b.total - dayStartL);
     const target = remAtDayStart / daysLeft;                 // bugünün hedefi (geride kalınca kendiliğinden büyür)
-    const doneToday = Math.max(0, L - p.snap.listened);
     const todayLeft = Math.max(0, target - doneToday);
     // Plana göre bugün başında nerede olunmalıydı
     const expected = p.base + (b.total - p.base) * Math.min(1, (dayNo - 1) / totalDays);
-    const behind = expected - p.snap.listened;               // + geride, − önde (içerik saniyesi)
+    const behind = expected - dayStartL;                     // + geride, − önde (içerik saniyesi)
     const finished = rem < 60;
     let status, tone;
     if (finished) { status = 'Kitap bitti, tebrikler!'; tone = 'good'; }
@@ -2055,8 +2064,8 @@ button.cal-day:hover { filter: brightness(.95); }
   // ---------- Yönlendirme (telefonun geri tuşu için) ----------
   let sheetPushed = false, navigated = false;
   function go(hash) { if (location.hash !== hash) location.hash = hash; else route(); }
-  function route() {
-    closePop();
+  function route(opts = {}) {
+    if (!opts.keepPop) closePop(); // hesaptan gelen güncelleme açık pencereyi kapatmaz
     const h = location.hash;
     // Paylaşılan link: #dinle/<kitap klasörü>/<dosya>/<saniye> → o bölüm o saniyeden hazır bekler
     const sh = h.match(/^#dinle\/([^/]+)\/([^/]+?)(?:\/(\d+))?$/);
@@ -2200,12 +2209,18 @@ button.cal-day:hover { filter: brightness(.95); }
     paintTime(c, d);
   }
   // Gerçekten dinlenen süreyi say (saat başına; hızlı dinleyince de gerçek süre)
-  let lastTick = 0;
+  // Telefonda ekran kilitliyken tarayıcı bu olayı seyrek gönderebilir (ya da sayfayı bir süre dondurur).
+  // Öyle aralıklarda süre, bölümde ilerlenen yerden hesaplanır: ilerleme ÷ hız (geçen gerçek süreyi aşmadan).
+  let lastTick = 0, lastPos = 0;
   audio.addEventListener('timeupdate', () => {
     updateTime();
-    const now = performance.now();
-    if (!audio.paused && lastTick && now - lastTick < 3000) addListen((now - lastTick) / 1000);
-    lastTick = audio.paused ? 0 : now;
+    const now = performance.now(), pos = audio.currentTime || 0;
+    if (!audio.paused && lastTick) {
+      const gap = (now - lastTick) / 1000;
+      if (gap < 3) addListen(gap);
+      else { const moved = (pos - lastPos) / (audio.playbackRate || 1); if (moved > 0) addListen(Math.min(moved, gap)); }
+    }
+    lastTick = audio.paused ? 0 : now; lastPos = pos;
     if (Date.now() - lastSave > 5000) { lastSave = Date.now(); saveProgress(false); reminderSync(); }
   });
   audio.addEventListener('seeking', () => { lastTick = 0; });
@@ -2577,7 +2592,8 @@ button.cal-day:hover { filter: brightness(.95); }
     setSyncStatus(t) { syncText = t; const el = document.querySelector('#syncLine'); if (el) el.textContent = t; },
     authReady() { window.SKR_AUTH_READY = true; if (!$('home').hidden) renderHome(); },
     // Hesaptaki kayıtla birleştir: bölüm başına yeni olan kazanır
-    merge(r) {
+    // quiet: yazmadan hemen önceki birleştirme; ekran yenilenmez (bir sonraki canlı güncelleme ya da gezinme yeniler)
+    merge(r, { quiet = false } = {}) {
       if (!r) return;
       // Silme zamanları: hangi cihazda silinmişse, o andan eski kayıtlar her yerde atılır
       const le = state.epoch, re = { ...DEF().epoch, ...(r.epoch || {}) };
@@ -2615,15 +2631,15 @@ button.cal-day:hover { filter: brightness(.95); }
       }
       // Dinleme süreleri: her cihazın her günü için büyük olan (sayaçlar yalnızca artar);
       // geçmiş başka cihazda silinmişse buradaki eski sayaçlar da silinir
-      if ((re.daily || 0) > (le.daily || 0)) { state.daily = {}; state.dayBooks = {}; }
+      if ((re.daily || 0) > (le.daily || 0)) { state.daily = {}; state.dayBooks = {}; state.dayContent = {}; }
       if ((re.daily || 0) >= (le.daily || 0)) {
         for (const [dev, days] of Object.entries(r.daily || {})) {
           const l = (state.daily[dev] ||= {});
           for (const [k, s] of Object.entries(days)) if (s > (l[k] || 0)) l[k] = s;
         }
-        // Gün gün kitap süreleri de aynı kuralla: cihaz, gün ve kitap başına büyük olan
-        for (const [dev, days] of Object.entries(r.dayBooks || {})) {
-          const l = (state.dayBooks[dev] ||= {});
+        // Gün gün kitap süreleri (gerçek ve içerik) de aynı kuralla: cihaz, gün ve kitap başına büyük olan
+        for (const f of ['dayBooks', 'dayContent']) for (const [dev, days] of Object.entries(r[f] || {})) {
+          const l = ((state[f] ||= {})[dev] ||= {});
           for (const [k, bs] of Object.entries(days)) { const m = (l[k] ||= {}); for (const [bk, s] of Object.entries(bs || {})) if (s > (m[bk] || 0)) m[bk] = s; }
         }
       }
@@ -2636,9 +2652,10 @@ button.cal-day:hover { filter: brightness(.95); }
         setSpeed(state.speed, false);
       }
       store.set('state', state);
+      if (quiet) return;
       if (!cur) { const l = pending(); if (l) showNow(l); }
       if ($('sheet').classList.contains('open')) return;
-      route();
+      route({ keepPop: true });
     }
   };
 

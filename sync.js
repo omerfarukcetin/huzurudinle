@@ -51,7 +51,20 @@ if (!config || !config.apiKey || location.protocol === 'file:') {
     auth.languageCode = 'tr';
     const db = F.getFirestore(fb);
 
-    let uid = null, timer = null, dirty = false;
+    let uid = null, timer = null, dirty = false, unsub = null, writing = false;
+    const myWrites = new Set();
+    // Canlı eşitleme: hesaptaki kayıt başka cihazdan değişince hemen alınır (açık duran sayfa da güncellenir).
+    // Bu cihazın henüz sunucuya ulaşmamış kendi yazımları atlanır.
+    function listen() {
+      unsub?.(); unsub = null;
+      if (!uid) return;
+      unsub = F.onSnapshot(ref(), snap => {
+        if (snap.metadata.hasPendingWrites || !snap.exists()) return;
+        const d = snap.data();
+        if (d._w && myWrites.has(d._w)) return; // kendi yazımımız: zaten bizde
+        app.merge(d);
+      }, () => { /* bağlantı koparsa Firebase kendisi yeniden dener */ });
+    }
     const ref = () => F.doc(db, 'users', uid);
     const time = () => new Date().toLocaleTimeString('tr', { hour: '2-digit', minute: '2-digit' });
 
@@ -59,13 +72,22 @@ if (!config || !config.apiKey || location.protocol === 'file:') {
       if (!uid) return;
       clearTimeout(timer); timer = null; dirty = false;
       try {
-        // JSON gidiş-dönüşü undefined alanları temizler (Firestore kabul etmez)
-        await F.setDoc(ref(), JSON.parse(JSON.stringify(app.getState())));
+        // Oku-birleştir-yaz tek işlemde: aynı anda yazan diğer cihazın son kaydı ezilmez (çakışınca Firebase yeniden dener).
+        // _w: bu yazımın kimliği; canlı dinleyici kendi yazımını tekrar işlemesin diye.
+        const w = Math.random().toString(36).slice(2);
+        myWrites.add(w); if (myWrites.size > 20) myWrites.delete(myWrites.values().next().value);
+        writing = true;
+        await F.runTransaction(db, async tx => {
+          const snap = await tx.get(ref());
+          if (snap.exists()) app.merge(snap.data(), { quiet: true });
+          // JSON gidiş-dönüşü undefined alanları temizler (Firestore kabul etmez)
+          tx.set(ref(), { ...JSON.parse(JSON.stringify(app.getState())), _w: w });
+        });
         app.setSyncStatus(`Kaldığın yer hesabına kaydediliyor · son kayıt ${time()}`);
       } catch (e) {
         dirty = true;
         app.setSyncStatus('Şu an kaydedilemedi; bağlantı gelince tekrar denenecek.');
-      }
+      } finally { writing = false; }
     }
     async function pull() {
       if (!uid) return;
@@ -78,7 +100,8 @@ if (!config || !config.apiKey || location.protocol === 'file:') {
     window.skrSync = {
       // Çalarken her birkaç saniyede bir çağrılır; buluta en fazla 15 saniyede bir yazılır
       push() { if (!uid) return; dirty = true; if (!timer) timer = setTimeout(write, 15000); },
-      flush() { if (uid && dirty) write(); },
+      // Yazım sürerken gelen kayıt isteği bekleyen zamanlayıcıyla sonra yazılır (iç içe yazım olmasın)
+      flush() { if (uid && dirty && !writing) write(); },
       // Yalnızca açılır pencere: yönlendirmeli giriş, site firebaseapp.com dışında (ör. github.io) barınınca
       // tarayıcıların üçüncü taraf çerez engeli yüzünden sessizce başarısız oluyor
       async signInGoogle() {
@@ -98,13 +121,14 @@ if (!config || !config.apiKey || location.protocol === 'file:') {
         const id = u.uid;
         const run = async () => {
           uid = null; clearTimeout(timer); timer = null; dirty = false; // silerken yeniden yazılmasın
+          unsub?.(); unsub = null;
           await F.deleteDoc(F.doc(db, 'users', id));
           await A.deleteUser(u);
         };
         try { await run(); }
         catch (e) {
           uid = id;
-          if (e.code !== 'auth/requires-recent-login') throw e;
+          if (e.code !== 'auth/requires-recent-login') { listen(); throw e; }
           // Güvenlik gereği yakın zamanda giriş istenir: Google hesabında pencereyle tekrar doğrula
           if (!u.providerData.some(p => p.providerId === 'google.com')) throw e;
           await A.reauthenticateWithPopup(u, new A.GoogleAuthProvider());
@@ -127,10 +151,11 @@ if (!config || !config.apiKey || location.protocol === 'file:') {
         await pull();   // önce hesaptakini al, bölüm bölüm birleştir
         await write();  // birleşmiş hâli geri yaz
       }
+      listen(); // giriş yoksa eski dinleyiciyi kapatır
       app.authReady();
     });
 
-    // Başka cihazda dinledikten sonra bu sekmeye dönülünce güncel kaydı al
+    // Yedek: sekmeye dönülünce bir kez daha al (telefon uzun süre arka planda kaldıysa)
     document.addEventListener('visibilitychange', () => { if (!document.hidden) pull(); });
     window.addEventListener('pagehide', () => window.skrSync.flush());
   } catch (e) {
