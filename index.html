@@ -1841,14 +1841,16 @@ button.cal-day:hover { filter: brightness(.95); }
     const todayLeft = Math.max(0, target - doneToday);
     // Plana göre bugün başında nerede olunmalıydı
     const expected = p.base + (b.total - p.base) * Math.min(1, (dayNo - 1) / totalDays);
-    const behind = expected - dayStartL;                     // + geride, − önde (içerik saniyesi)
+    // + geride, − önde (içerik saniyesi). Gün başında olunması gereken yerle şu anki konum karşılaştırılır:
+    // bugün dinledikçe anında azalır (gün başındaki konumla karşılaştırınca gün bitene kadar değişmiyordu)
+    const behind = expected - L;
     const finished = rem < 60;
     let status, tone;
     if (finished) { status = 'Kitap bitti, tebrikler!'; tone = 'good'; }
     else if (overdue) { status = `Plan süresi doldu (bitiş ${dateWords(p.end)}); ${human(rem)} kaldı`; tone = 'warn'; }
     else if (todayLeft < 30) { status = 'Bugünün hedefi tamam'; tone = 'good'; }
-    else if (behind > 10 * 60) { status = `Plana göre ${human(behind)} gerideysin`; tone = 'warn'; }
-    else if (behind < -10 * 60) { status = `Plandan ${human(-behind)} öndesin`; tone = 'good'; }
+    else if (behind > 10 * 60) { status = `Plana göre ${human(atSpeed(behind))} geridesin`; tone = 'warn'; }
+    else if (behind < -10 * 60) { status = `Plandan ${human(atSpeed(-behind))} öndesin`; tone = 'good'; }
     else { status = 'Plana uygun gidiyorsun'; tone = 'ok'; }
     return { p, totalDays, dayNo, daysLeft, overdue, target, doneToday, todayLeft, behind, finished, rem, status, tone, L, expected };
   }
@@ -2274,7 +2276,11 @@ button.cal-day:hover { filter: brightness(.95); }
       else { const moved = (pos - lastPos) / (audio.playbackRate || 1); if (moved > 0) addListen(Math.min(moved, gap)); }
     }
     lastTick = audio.paused ? 0 : now; lastPos = pos;
-    if (Date.now() - lastSave > 5000) { lastSave = Date.now(); saveProgress(false); reminderSync(); }
+    if (Date.now() - lastSave > 5000) {
+      lastSave = Date.now(); saveProgress(false); reminderSync();
+      // Açık kitap sayfasındaki plan kartı dinlerken de güncellensin ("bugün", hedef, geride/önde)
+      if (cur && viewBook === cur.b && !$('detail').hidden) renderPlanCard(books[cur.b]);
+    }
   });
   audio.addEventListener('seeking', () => { lastTick = 0; });
   audio.addEventListener('durationchange', () => { $$('.seekbar').forEach(s => s.max = Math.floor(audio.duration || 0)); updateTime(); });
