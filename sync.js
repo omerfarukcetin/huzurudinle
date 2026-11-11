@@ -1,6 +1,9 @@
 // Hesap (e-posta / Google) ve dinleme kaydı senkronu — Firebase Authentication + Cloud Firestore.
 // Her kullanıcının kaydı tek bir belgede durur: users/{uid}. Ayar yoksa site hesapsız (yalnız bu cihazda) çalışır.
 const SDK = 'https://www.gstatic.com/firebasejs/10.12.2';
+// Verilerim'de görünür: bir cihaz eski dosyada kaldıysa buradan anlaşılır (her değişiklikte güncelleyin)
+export const SYNC_VERSION = '2026-11-11';
+window.SKR_SYNC_VERSION = SYNC_VERSION;
 const app = window.skrApp;
 
 // Ayar dosyasını ayrı yükle: hatalı yapıştırılmışsa sessizce bozulmasın, hesap panelinde nedeni yazsın
@@ -53,6 +56,9 @@ if (!config || !config.apiKey || location.protocol === 'file:') {
 
     let uid = null, timer = null, dirty = false, unsub = null, writing = false;
     const myWrites = new Set();
+    // Verilerim > Eşitleme durumu için: son başarılı kayıt / alma zamanı ve son hata
+    const info = { lastWrite: 0, lastRead: 0, error: null };
+    const changed = () => app.syncInfoChanged?.();
     // Canlı eşitleme: hesaptaki kayıt başka cihazdan değişince hemen alınır (açık duran sayfa da güncellenir).
     // Bu cihazın henüz sunucuya ulaşmamış kendi yazımları atlanır.
     function listen() {
@@ -63,7 +69,8 @@ if (!config || !config.apiKey || location.protocol === 'file:') {
         const d = snap.data();
         if (d._w && myWrites.has(d._w)) return; // kendi yazımımız: zaten bizde
         app.merge(d);
-      }, () => { /* bağlantı koparsa Firebase kendisi yeniden dener */ });
+        info.lastRead = Date.now(); changed();
+      }, e => { info.error = e; changed(); /* bağlantı koparsa Firebase kendisi yeniden dener */ });
     }
     const ref = () => F.doc(db, 'users', uid);
     const time = () => new Date().toLocaleTimeString('tr', { hour: '2-digit', minute: '2-digit' });
@@ -83,18 +90,22 @@ if (!config || !config.apiKey || location.protocol === 'file:') {
           // JSON gidiş-dönüşü undefined alanları temizler (Firestore kabul etmez)
           tx.set(ref(), { ...JSON.parse(JSON.stringify(app.getState())), _w: w });
         });
+        info.lastWrite = info.lastRead = Date.now(); info.error = null;
         app.setSyncStatus(`Kaldığın yer hesabına kaydediliyor · son kayıt ${time()}`);
       } catch (e) {
-        dirty = true;
+        dirty = true; info.error = e;
+        console.warn('Hesaba kayıt başarısız:', e);
         app.setSyncStatus('Şu an kaydedilemedi; bağlantı gelince tekrar denenecek.');
-      } finally { writing = false; }
+      } finally { writing = false; changed(); }
     }
     async function pull() {
       if (!uid) return;
       try {
         const snap = await F.getDoc(ref());
         if (snap.exists()) app.merge(snap.data());
-      } catch { /* çevrimdışı: yerel kayıtla devam */ }
+        info.lastRead = Date.now();
+      } catch (e) { info.error = e; /* çevrimdışı: yerel kayıtla devam */ }
+      changed();
     }
 
     window.skrSync = {
@@ -102,6 +113,10 @@ if (!config || !config.apiKey || location.protocol === 'file:') {
       push() { if (!uid) return; dirty = true; if (!timer) timer = setTimeout(write, 15000); },
       // Yazım sürerken gelen kayıt isteği bekleyen zamanlayıcıyla sonra yazılır (iç içe yazım olmasın)
       flush() { if (uid && dirty && !writing) write(); },
+      // Eşitleme durumu: giriş yöntemi, son kayıt/alma, son hata (hata metni errorText ile)
+      info: () => ({ ...info, provider: auth.currentUser?.providerData?.[0]?.providerId || null, live: !!unsub }),
+      // "Şimdi eşitle": hesaptakini al, birleşmiş hâli yaz
+      async syncNow() { if (!uid) return; await pull(); await write(); },
       // Yalnızca açılır pencere: yönlendirmeli giriş, site firebaseapp.com dışında (ör. github.io) barınınca
       // tarayıcıların üçüncü taraf çerez engeli yüzünden sessizce başarısız oluyor
       async signInGoogle() {

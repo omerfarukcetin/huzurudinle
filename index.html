@@ -666,6 +666,9 @@ button.cal-day:hover { filter: brightness(.95); }
 .day-books img { height: 36px; width: auto; margin: 0 auto; }
 .day-books span { overflow-wrap: anywhere; }
 .day-books b { font-variant-numeric: tabular-nums; }
+.sync-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; font-size: var(--fs-sm); }
+.sync-dl dt { color: var(--muted); }
+.sync-dl dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .drow.end { display: flex; justify-content: flex-end; padding-top: 12px; }
 .drow img { height: 42px; width: auto; margin: 0 auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,.2)); }
 .drow strong { display: block; font-size: var(--fs-sm); font-weight: 600; overflow-wrap: anywhere; }
@@ -1566,6 +1569,43 @@ button.cal-day:hover { filter: brightness(.95); }
     toast('Tüm dinleme verilerin silindi');
   }
 
+  // Sayfanın sürümü: Verilerim'de görünür; bir cihaz eski sürümde kaldıysa buradan anlaşılır (her değişiklikte güncelleyin)
+  const APP_VERSION = '2026-11-11b';
+  function syncCard() {
+    const today = dayKey(), mine = state.daily?.[DEVICE]?.[bucket(today)] || 0, all = daySum(today);
+    const others = Object.keys(state.daily || {}).filter(d => d !== DEVICE && (state.daily[d][bucket(today)] || 0) >= 1).length;
+    const when = t => !t ? 'henüz yok' : dayKey(new Date(t)) === today ? new Date(t).toLocaleTimeString('tr', { hour: '2-digit', minute: '2-digit' }) : new Date(t).toLocaleString('tr', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+    const ver = `Sayfa ${APP_VERSION} · eşitleme ${window.SKR_SYNC_VERSION || 'eski'}`;
+    const rows = [];
+    let note = '';
+    if (!user) {
+      rows.push(['Hesap', 'Giriş yapılmadı']);
+      note = window.SKR_AUTH_ERROR ? esc(window.SKR_AUTH_ERROR) : 'Kayıtların yalnızca bu cihazda. Diğer cihazlarla birleşmesi için aynı hesapla giriş yap.';
+    } else {
+      const i = window.skrSync?.info?.();
+      if (!i) {
+        rows.push(['Hesap', esc(user.email || '')]);
+        note = 'Bu cihazda eşitleme dosyasının eski sürümü çalışıyor. Siteyi tamamen kapatıp yeniden aç; düzelmezse sayfayı yenile.';
+      } else {
+        const how = { 'google.com': 'Google ile', password: 'E-posta ve şifre ile' }[i.provider] || '';
+        rows.push(['Hesap', `${esc(user.email || '')}${how ? ` · ${how}` : ''}`]);
+        rows.push(['Hesaba son kayıt', when(i.lastWrite)]);
+        rows.push(['Hesaptan son alınan', when(i.lastRead)]);
+        rows.push(['Canlı eşitleme', i.live ? 'açık' : 'kapalı']);
+        if (i.error) note = `Son hata: ${esc(window.skrSync.errorText(i.error))}`;
+      }
+    }
+    rows.push(['Bugün', `${dayLen(all)} toplam · bu cihaz ${dayLen(mine)}${others ? ` · diğer ${others} cihaz ${dayLen(Math.max(0, all - mine))}` : ''}`]);
+    rows.push(['Sürüm', ver]);
+    return `<div class="card">
+      <h3>Eşitleme durumu</h3>
+      <dl class="sync-dl">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+      ${note ? `<p class="hint" style="margin:8px 0 0">${note}</p>` : ''}
+      <p class="hint" style="margin:8px 0 0">Telefon ve bilgisayarda farklı süre görüyorsan iki cihazda da buraya bak: hesap ve giriş yöntemi aynı olmalı, sürüm de aynı olmalı.</p>
+      ${user ? '<div class="drow end" style="justify-content:flex-start"><button class="linkbtn" type="button" id="syncNow">Şimdi eşitle</button></div>' : ''}
+    </div>`;
+  }
+
   function renderData() {
     const started = books.filter(b => b.tracks.some(t => { const p = prog(t); return p && (p.done || p.pos > 1); }) || lastInBook(b.id) != null);
     const marks = Object.entries(state.bookmarks).filter(([, m]) => !m.deleted && byKey.get(m.k))
@@ -1579,6 +1619,8 @@ button.cal-day:hover { filter: brightness(.95); }
     $('dataBody').innerHTML = `
       <h2 class="pt">Verilerim</h2>
       <p class="note" style="margin:4px 0 0;max-width:640px">Burada ${user ? 'hesabında ve bu cihazda' : 'bu cihazda'} saklanan dinleme kayıtlarını görebilir ve silebilirsin.${user ? ' Sildiğin kayıt, giriş yaptığın diğer cihazlardan da silinir.' : ''} Kitaplar ve sesler etkilenmez.</p>
+
+      ${syncCard()}
 
       <div class="card">
         <h3>Kitaplardaki ilerleme <small class="count">${started.length} kitap</small></h3>
@@ -1628,6 +1670,11 @@ button.cal-day:hover { filter: brightness(.95); }
     body.querySelectorAll('[data-reset]').forEach(x => x.onclick = () => {
       const b = books[+x.dataset.reset];
       confirmPop('İlerlemeyi sıfırla', `<b>${esc(b.title)}</b> kitabındaki dinlenen bölümler ve kaldığın yer silinecek. Yer imlerin kalır.`, 'Sıfırla', () => { resetBook(b.id); renderData(); });
+    });
+    body.querySelector('#syncNow')?.addEventListener('click', async e => {
+      e.target.disabled = true; e.target.textContent = 'Eşitleniyor…';
+      try { await window.skrSync.syncNow(); toast('Eşitlendi'); } catch { toast('Eşitlenemedi'); }
+      renderData();
     });
     body.querySelector('#toCal')?.addEventListener('click', () => { calMonth = dayKey().slice(0, 7); go('#istatistik'); setTimeout(() => $('cal')?.scrollIntoView({ block: 'start', behavior: 'smooth' }), 80); });
     body.querySelectorAll('[data-delrounds]').forEach(x => x.onclick = () => {
@@ -2648,6 +2695,8 @@ button.cal-day:hover { filter: brightness(.95); }
       }
       route();
     },
+    // Eşitleme durumu değişince açık Verilerim sayfası güncellensin
+    syncInfoChanged() { if (!$('data').hidden) renderData(); },
     setSyncStatus(t) { syncText = t; const el = document.querySelector('#syncLine'); if (el) el.textContent = t; },
     authReady() { window.SKR_AUTH_READY = true; if (!$('home').hidden) renderHome(); },
     // Hesaptaki kayıtla birleştir: bölüm başına yeni olan kazanır
